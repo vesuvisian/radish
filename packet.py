@@ -1,7 +1,8 @@
 import struct
 from dataclasses import dataclass
 
-from maps import AddressMap, MessageMap, NodeMap, SubnetMap
+from maps import ADDRESS_TYPE_MAP, NODE_TYPE_MAP, SUBNET_MAP, SEND_METHOD_MAP, decode_packet_number, decode_send_parameters
+from messages import MessageRegistry
 from node import Node
 
 # Packet breakdown:
@@ -88,16 +89,17 @@ class Packet:
         )
     
     def __str__(self) -> str:
+        message = MessageRegistry.parse(self.message_type, self.payload)
         return (
-            f"To: {self.destination_address} ({AddressMap.get_address_description(self.destination_address)})\n"
-            f"From: {self.source_address} ({AddressMap.get_address_description(self.source_address)})\n"
-            f"Subnet: {self.subnet} ({SubnetMap.get_subnet_description(self.subnet)})\n"
-            f"Send Method: {self.send_method:#04x}\n"
-            f"Send Parameters: {self.send_parameters:#06x}\n"
-            f"Source Node Type: {self.source_node_type} ({NodeMap.get_node_description(self.source_node_type)})\n"
-            f"Message Type: {self.message_type:#04x} ({MessageMap.get_message_description(self.message_type)})\n"
-            f"Packet Number: {self.packet_number}\n"
+            f"To: {self.destination_address} ({ADDRESS_TYPE_MAP[self.destination_address]})\n"
+            f"From: {self.source_address} ({ADDRESS_TYPE_MAP[self.source_address]})\n"
+            f"Subnet: {self.subnet} ({SUBNET_MAP[self.subnet]})\n"
+            f"Send Method: {self.send_method} ({SEND_METHOD_MAP[self.send_method]})\n"
+            f"Send Parameters: {self.send_parameters:#06x} ({decode_send_parameters(self.send_method, self.send_parameters, self.source_node_type)})\n"
+            f"Source Node Type: {self.source_node_type} ({NODE_TYPE_MAP[self.source_node_type]})\n"
+            f"Message Type: {self.message_type:#04x} ({message.name})\n"
+            f"Packet Number: {self.packet_number} ({decode_packet_number(self.packet_number)})\n"
             f"Packet Length: {self.packet_length}\n"
-            f"Payload: {self.payload.hex()}\n"
+            f"Payload: {message}\n"
             f"Checksum: {self.checksum:#06x}"
         )

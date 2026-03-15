@@ -1,263 +1,175 @@
 from enum import Enum
 
+class MissingKeyDict(dict):
+    """A dictionary that returns a default value for missing keys instead of raising KeyError."""
+    def __init__(self, *args, default_value=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.default_value = default_value
 
-class AddressType(Enum):
-    """Address type categories for Daikin HVAC network."""
-    BROADCAST = "Broadcast"
-    CT1_0_SUBORDINATE = "CT1.0 Subnet 2 Subordinate Address"
-    RESERVED_OVERHEAD = "Reserved for Future Use (Overhead Validation)"
-    SUBORDINATE_3 = ">CT1.0 Subnet 3 Subordinate Address"
-    # RESERVED_OVERHEAD
-    RESERVED_INTERNET = "Reserved for Future Use (Internet Access)"
-    RESTRICTED_DIAGNOSTIC = "Restricted Address Range (Diagnostic Use)"
-    RESERVED_WIRELESS = "Reserved for Future Use (Wireless Address Range)"
-    RESTRICTED_NETWORK = "Restricted Address (Network Analysis)"
-    RESERVED_AUTHENTICATION = "Reserved for Future Use (System Authentication)"
-    RESERVED_BRIDGE_ROUTING = "Reserved for Future Use (Bridge/Routing Address Range)"
-    RESERVED_RFD = "Reserved for Future Use (RFD Devices)"
-    COORDINATOR_ARBITRATION = "Coordinator Arbitration Address"
-    NETWORK_COORDINATOR = "Network Coordinator Address"
-    UNKNOWN = "Unknown Address Type"
+    def __getitem__(self, key):
+        return super().get(key, self.default_value)
 
+class RangeDict(MissingKeyDict):
+    """A dictionary that maps ranges of integers to values, returns default_value if not found."""
+    def __getitem__(self, key):
+        for (start, end), value in self.items():
+            if start <= key <= end:
+                return value
+        return self.default_value
 
-class AddressMap:
-    """Maps RS-485 addresses to their purposes."""
-    
-    _ADDRESS_RANGES = [
-        (0, 0, AddressType.BROADCAST),
-        (1, 14, AddressType.CT1_0_SUBORDINATE),
-        (15, 15, AddressType.RESERVED_OVERHEAD),
-        (16, 62, AddressType.SUBORDINATE_3),
-        (63, 63, AddressType.RESERVED_OVERHEAD),
-        (64, 84, AddressType.RESERVED_INTERNET),
-        (85, 90, AddressType.RESTRICTED_DIAGNOSTIC),
-        (91, 191, AddressType.RESERVED_WIRELESS),
-        (192, 192, AddressType.RESTRICTED_NETWORK),
-        (193, 207, AddressType.RESERVED_AUTHENTICATION),
-        (208, 239, AddressType.RESERVED_BRIDGE_ROUTING),
-        (240, 253, AddressType.RESERVED_RFD),
-        (254, 254, AddressType.COORDINATOR_ARBITRATION),
-        (255, 255, AddressType.NETWORK_COORDINATOR),
-    ]
-    
-    @classmethod
-    def get_address_type(cls, address: int) -> AddressType:
-        """Get the type/purpose of an address."""
-        for start, end, addr_type in cls._ADDRESS_RANGES:
-            if start <= address <= end:
-                return addr_type
-        return AddressType.UNKNOWN
-    
-    @classmethod
-    def get_address_description(cls, address: int) -> str:
-        """Get a human-readable description of an address."""
-        return cls.get_address_type(address).value
+ADDRESS_TYPE_MAP = RangeDict(
+    {
+        (0, 0): "Broadcast",
+        (1, 14): "CT1.0 Subnet 2 Subordinate Address",
+        (15, 15): "Reserved for Future Use (Overhead Validation)",
+        (16, 62): ">CT1.0 Subnet 3 Subordinate Address",
+        (63, 63): "Reserved for Future Use (Overhead Validation)",
+        (64, 84): "Reserved for Future Use (Internet Access)",
+        (85, 90): "Restricted Address Range (Diagnostic Use)",
+        (91, 191): "Reserved for Future Use (Wireless Address Range)",
+        (192, 192): "Restricted Address (Network Analysis)",
+        (193, 207): "Reserved for Future Use (System Authentication)",
+        (208, 239): "Reserved for Future Use (Bridge/Routing Address Range)",
+        (240, 253): "Reserved for Future Use (RFD Devices)",
+        (254, 254): "Coordinator Arbitration Address",
+        (255, 255): "Network Coordinator Address",
+    },
+    default_value="Unknown Address Type"
+)
 
+SUBNET_MAP = MissingKeyDict({
+    0: "All subnets",
+    2: "v1.0 Subordinates",
+    3: ">v1.0 Subordinates",
+}, default_value="Reserved for future use")
 
-class SubnetType(Enum):
-    """Subnet type categories for Daikin HVAC network."""
-    SUBNET_0 = "All subnets"
-    SUBNET_2 = "v1.0 Subordinates"
-    SUBNET_3 = ">v1.0 Subordinates"
-    RESERVED = "Reserved for future use"
-
-class SubnetMap:
-    """Maps subnet numbers to their purposes."""
-    
-    _SUBNET_DICT = {
-        0: SubnetType.SUBNET_0,
-        2: SubnetType.SUBNET_2,
-        3: SubnetType.SUBNET_3,
-    }
-    
-    @classmethod
-    def get_subnet_type(cls, subnet: int) -> SubnetType:
-        """Get the type/purpose of a subnet."""
-        return cls._SUBNET_DICT.get(subnet, SubnetType.RESERVED)
-
-    @classmethod
-    def get_subnet_description(cls, subnet: int) -> str:
-        """Get a human-readable description of a subnet."""
-        return cls.get_subnet_type(subnet).value
-
-
-class NodeType(Enum):
-    """Node type categories for Daikin HVAC network."""
-    UNKNOWN = "Unknown"
-    THERMOSTAT = "Thermostat"
-    GAS_FURNACE = "Gas Furnace"
-    AIR_HANDLER = "Air Handler"
-    AIR_CONDITIONER = "Air Conditioner"
-    HEAT_PUMP = "Heat Pump"
-    ELECTRIC_FURNACE = "Electric Furnace"
-    PACKAGE_SYSTEM_GAS = "Package System - Gas"
-    PACKAGE_SYSTEM_ELECTRIC = "Package System - Electric"
-    CROSSOVER_OBBI = "Crossover (aka OBBI)"
-    SECONDARY_COMPRESSOR = "Secondary Compressor"
-    AIR_EXCHANGER = "Air Exchanger"
-    UNITARY_CONTROL = "Unitary Control"
-    DEHUMIDIFIER = "Dehumidifier"
-    ELECTRONIC_AIR_CLEANER = "Electronic Air Cleaner"
-    ERV = "ERV"
-    HUMIDIFIER_EVAPORATIVE = "Humidifier (Evaporative)"
-    HUMIDIFIER_STEAM = "Humidifier (Steam)"
-    HRV = "HRV"
-    IAQ_ANALYZER = "IAQ Analyzer"
-    MEDIA_AIR_CLEANER = "Media Air Cleaner"
-    ZONE_CONTROL = "Zone Control"
-    ZONE_USER_INTERFACE = "Zone User Interface"
-    BOILER = "Boiler"
-    WATER_HEATER_GAS = "Water Heater - Gas"
-    WATER_HEATER_ELECTRIC = "Water Heater - Electric"
-    WATER_HEATER_COMMERCIAL = "Water Heater - Commercial"
-    POOL_HEATER = "Pool Heater"
-    CEILING_FAN = "Ceiling Fan"
-    GATEWAY = "Gateway"
-    DIAGNOSTIC_DEVICE = "Diagnostic Device"
-    LIGHTING_CONTROL = "Lighting Control"
-    SECURITY_SYSTEM = "Security System"
-    UV_LIGHT = "UV Light"
-    WEATHER_DATA_DEVICE = "Weather Data Device"
-    WHOLE_HOUSE_FAN = "Whole House Fan"
-    SOLAR_INVERTER = "Solar Inverter"
-    ZONE_DAMPER = "Zone Damper"
-    ZONE_TEMPERATURE_CONTROL = "Zone Temperature Control (ZTC)"
-    TEMPERATURE_SENSOR = "Temperature Sensor"
-    OCCUPANCY_SENSOR = "Occupancy Sensor"
-    NETWORK_COORDINATOR = "Network Coordinator"
-    RESERVED = "Reserved"
+NODE_TYPE_MAP = MissingKeyDict({
+    1: "Thermostat",
+    2: "Gas Furnace",
+    3: "Air Handler",
+    4: "Air Conditioner",
+    5: "Heat Pump",
+    6: "Electric Furnace",
+    7: "Package System - Gas",
+    8: "Package System - Electric",
+    9: "Crossover (aka OBBI)",
+    10: "Secondary Compressor",
+    11: "Air Exchanger",
+    12: "Unitary Control",
+    13: "Dehumidifier",
+    14: "Electronic Air Cleaner",
+    15: "ERV",
+    16: "Humidifier (Evaporative)",
+    17: "Humidifier (Steam)",
+    18: "HRV",
+    19: "IAQ Analyzer",
+    20: "Media Air Cleaner",
+    21: "Zone Control",
+    22: "Zone User Interface",
+    23: "Boiler",
+    24: "Water Heater - Gas",
+    25: "Water Heater - Electric",
+    26: "Water Heater - Commercial",
+    27: "Pool Heater",
+    28: "Ceiling Fan",
+    29: "Gateway",
+    30: "Diagnostic Device",
+    31: "Lighting Control",
+    32: "Security System",
+    33: "UV Light",
+    34: "Weather Data Device",
+    35: "Whole House Fan",
+    36: "Solar Inverter",
+    37: "Zone Damper",
+    38: "Zone Temperature Control (ZTC)",
+    39: "Temperature Sensor",
+    40: "Occupancy Sensor",
+    165: "Network Coordinator",
+}, default_value="Reserved")
 
 
-# NodeMap for lookup and description
-class NodeMap:
-    """Maps node type values to their descriptions."""
-    _NODETYPE_MAP = {
-        1: NodeType.THERMOSTAT,
-        2: NodeType.GAS_FURNACE,
-        3: NodeType.AIR_HANDLER,
-        4: NodeType.AIR_CONDITIONER,
-        5: NodeType.HEAT_PUMP,
-        6: NodeType.ELECTRIC_FURNACE,
-        7: NodeType.PACKAGE_SYSTEM_GAS,
-        8: NodeType.PACKAGE_SYSTEM_ELECTRIC,
-        9: NodeType.CROSSOVER_OBBI,
-        10: NodeType.SECONDARY_COMPRESSOR,
-        11: NodeType.AIR_EXCHANGER,
-        12: NodeType.UNITARY_CONTROL,
-        13: NodeType.DEHUMIDIFIER,
-        14: NodeType.ELECTRONIC_AIR_CLEANER,
-        15: NodeType.ERV,
-        16: NodeType.HUMIDIFIER_EVAPORATIVE,
-        17: NodeType.HUMIDIFIER_STEAM,
-        18: NodeType.HRV,
-        19: NodeType.IAQ_ANALYZER,
-        20: NodeType.MEDIA_AIR_CLEANER,
-        21: NodeType.ZONE_CONTROL,
-        22: NodeType.ZONE_USER_INTERFACE,
-        23: NodeType.BOILER,
-        24: NodeType.WATER_HEATER_GAS,
-        25: NodeType.WATER_HEATER_ELECTRIC,
-        26: NodeType.WATER_HEATER_COMMERCIAL,
-        27: NodeType.POOL_HEATER,
-        28: NodeType.CEILING_FAN,
-        29: NodeType.GATEWAY,
-        30: NodeType.DIAGNOSTIC_DEVICE,
-        31: NodeType.LIGHTING_CONTROL,
-        32: NodeType.SECURITY_SYSTEM,
-        33: NodeType.UV_LIGHT,
-        34: NodeType.WEATHER_DATA_DEVICE,
-        35: NodeType.WHOLE_HOUSE_FAN,
-        36: NodeType.SOLAR_INVERTER,
-        37: NodeType.ZONE_DAMPER,
-        38: NodeType.ZONE_TEMPERATURE_CONTROL,
-        39: NodeType.TEMPERATURE_SENSOR,
-        40: NodeType.OCCUPANCY_SENSOR,
-        165: NodeType.NETWORK_COORDINATOR,
-    }
-
-    @classmethod
-    def get_node_type(cls, value: int) -> NodeType:
-        return cls._NODETYPE_MAP.get(value, NodeType.RESERVED)
-
-    @classmethod
-    def get_node_description(cls, value: int) -> str:
-        return cls.get_node_type(value).value
+SEND_METHOD_MAP = MissingKeyDict({
+    0: "Non-Routed",
+    1: "Routing by Priority Control Command Device",
+    2: "Routing by Priority Node Type",
+    3: "Routing by Socket",
+}, default_value="Unknown Send Method")
 
 
-class MessageType(Enum):
-    """Message type categories for Daikin HVAC network."""
-    GET_CONFIGURATION = "Get Configuration Request"
-    GET_CONFIGURATION_RESPONSE = "Get Configuration Response"
-    GET_STATUS = "Get Status Request"
-    GET_STATUS_RESPONSE = "Get Status Response"
-    SET_CONTROL_COMMAND = "Set Control Command"
-    SET_CONTROL_COMMAND_RESPONSE = "Set Control Command Response"
-    SET_DISPLAY = "Set Display"
-    SET_DISPLAY_RESPONSE = "Set Display Response"
-    SET_DIAGNOSTICS = "Set Diagnostics"
-    SET_DIAGNOSTICS_RESPONSE = "Set Diagnostics Response"
-    GET_DIAGNOSTICS = "Get Diagnostics"
-    GET_DIAGNOSTICS_RESPONSE = "Get Diagnostics Response"
-    GET_SENSOR_DATA = "Get Sensor Data"
-    GET_SENSOR_DATA_RESPONSE = "Get Sensor Data Response"
-    SET_IDENTIFICATION = "Set Identification"
-    SET_IDENTIFICATION_RESPONSE = "Set Identification Response"
-    GET_IDENTIFICATION = "Get Identification"
-    GET_IDENTIFICATION_RESPONSE = "Get Identification Response"
-    SET_APPLICATION = "Application Set Network Shared Data to Network Request"
-    SET_APPLICATION_RESPONSE = "Application Set Network Shared Data to Network Response"
-    GET_APPLICATION = "Application Get Network Shared Data from Network Request"
-    GET_APPLICATION_RESPONSE = "Application Get Network Shared Data from Network Response"
-    SET_MANUFACTURER_DEVICE = "Set Manufacturer Device Data"
-    SET_MANUFACTURER_DEVICE_RESPONSE = "Set Manufacturer Device Data Response"
-    GET_MANUFACTURER_DEVICE = "Get Manufacturer Device Data"
-    GET_MANUFACTURER_DEVICE_RESPONSE = "Get Manufacturer Device Data Response"
-    SET_NETWORK = "Set Network Node List"
-    SET_NETWORK_RESPONSE = "Set Network Node List Response"
-    DMA_READ = "Direct Memory Access Read Request"
-    DMA_READ_RESPONSE = "Direct Memory Access Read Response"
-    UNKNOWN = "Unknown Message Type"
+def decode_send_parameters(send_method: int, send_parameters: int, source_node_type: int) -> str:
+    """Decode send parameters based on the send method."""
+    if send_method == 0:  # Non-Routed
+        if send_parameters >= 0x0100:
+            return "Error: Invalid Non-Routed Send Parameters"
+        if source_node_type != 165:  # Not Network Coordinator
+            if send_parameters != 0x0000:
+                return "Error: Invalid Non-Routed Send Parameters from Non-Coordinator"
+            return "Non-Routed Send Parameters from Non-Coordinator"
+        return f"Requesting device's index among its node type: {int(send_parameters)}"  # 'Index of Source Node among nodes of its own type'
+    elif send_method == 1:  # Routing by Priority Control Command Device
+        return "TBD"
+    elif send_method == 2:  # Routing by Priority Node Type
+        node_type = send_parameters >> 8
+        param_2 = send_parameters & 0xFF
+        if param_2 != 0x00:
+            msg_2 = f"Requesting device's index among its node type: {int(param_2)}"  # 'Index of Source Node among nodes of its own type'
+        else:
+            msg_2 = "Source node index 0, or initial request to or response from coordinator"
+        return f"Targeted node type: {node_type} ({NODE_TYPE_MAP[node_type]}), {msg_2}"
+    elif send_method == 3:  # Routing by Socket
+        return "TBD"
+    else:
+        return f"Unknown Send Method (0x{send_parameters:04x})"
 
+def decode_packet_number(packet_number: int) -> str:
+    """Decode packet number to determine if it's a request or response and its sequence."""
+    if packet_number & 128:  # Check if bit 7 is set
+        msg_1 = "Dataflow packet (R2R or ACK);"
+    else:
+        msg_1 = "Not a dataflow packet;"
+    if packet_number & 32:  # Check if bit 5 is set
+        msg_2 = "Node discovery request or CT1.0 device"
+    else:
+        msg_2 = "Not a node discovery request, or is a CT2.0 device"
+    return f"{msg_1} {msg_2}"
 
-class MessageMap:
-    """Maps message type values to their descriptions."""
-    _MESSAGETYPE_MAP = {
-        0x01: MessageType.GET_CONFIGURATION,
-        0x81: MessageType.GET_CONFIGURATION_RESPONSE,
-        0x02: MessageType.GET_STATUS,
-        0x82: MessageType.GET_STATUS_RESPONSE,
-        0x03: MessageType.SET_CONTROL_COMMAND,
-        0x83: MessageType.SET_CONTROL_COMMAND_RESPONSE,
-        0x04: MessageType.SET_DISPLAY,
-        0x84: MessageType.SET_DISPLAY_RESPONSE,
-        0x05: MessageType.SET_DIAGNOSTICS,
-        0x85: MessageType.SET_DIAGNOSTICS_RESPONSE,
-        0x06: MessageType.GET_DIAGNOSTICS,
-        0x86: MessageType.GET_DIAGNOSTICS_RESPONSE,
-        0x07: MessageType.GET_SENSOR_DATA,
-        0x87: MessageType.GET_SENSOR_DATA_RESPONSE,
-        0x0D: MessageType.SET_IDENTIFICATION,
-        0x8D: MessageType.SET_IDENTIFICATION_RESPONSE,
-        0x0E: MessageType.GET_IDENTIFICATION,
-        0x8E: MessageType.GET_IDENTIFICATION_RESPONSE,
-        0x10: MessageType.SET_APPLICATION,
-        0x90: MessageType.SET_APPLICATION_RESPONSE,
-        0x11: MessageType.GET_APPLICATION,
-        0x91: MessageType.GET_APPLICATION_RESPONSE,
-        0x12: MessageType.SET_MANUFACTURER_DEVICE,
-        0x92: MessageType.SET_MANUFACTURER_DEVICE_RESPONSE,
-        0x13: MessageType.GET_MANUFACTURER_DEVICE,
-        0x93: MessageType.GET_MANUFACTURER_DEVICE_RESPONSE,
-        0x14: MessageType.SET_NETWORK,
-        0x94: MessageType.SET_NETWORK_RESPONSE,
-        0x1D: MessageType.DMA_READ,
-        0x9D: MessageType.DMA_READ_RESPONSE,
-    }
-
-    @classmethod
-    def get_message_type(cls, value: int) -> MessageType:
-        return cls._MESSAGETYPE_MAP.get(value, MessageType.UNKNOWN)
-
-    @classmethod
-    def get_message_description(cls, value: int) -> str:
-        return cls.get_message_type(value).value
+MESSAGE_TYPE_MAP = MissingKeyDict({
+    0x01: "Get Configuration Request",
+    0x81: "Get Configuration Response",
+    0x02: "Get Status Request",
+    0x82: "Get Status Response",
+    0x03: "Set Control Command",
+    0x83: "Set Control Command Response",
+    0x04: "Set Display",
+    0x84: "Set Display Response",
+    0x05: "Set Diagnostics",
+    0x85: "Set Diagnostics Response",
+    0x06: "Get Diagnostics",
+    0x86: "Get Diagnostics Response",
+    0x07: "Get Sensor Data",
+    0x87: "Get Sensor Data Response",
+    0x0D: "Set Identification",
+    0x8D: "Set Identification Response",
+    0x0E: "Get Identification",
+    0x8E: "Get Identification Response",
+    0x10: "Application Set Network Shared Data to Network Request",
+    0x90: "Application Set Network Shared Data to Network Response",
+    0x11: "Application Get Network Shared Data from Network Request",
+    0x91: "Application Get Network Shared Data from Network Response",
+    0x12: "Set Manufacturer Device Data",
+    0x92: "Set Manufacturer Device Data Response",
+    0x13: "Get Manufacturer Device Data",
+    0x93: "Get Manufacturer Device Data Response",
+    0x14: "Set Network Node List",
+    0x94: "Set Network Node List Response",
+    0x1D: "Direct Memory Access Request",
+    0x9D: "Direct Memory Access Response",
+    # CT-485-specific Message Types
+    0x00: "Request to Receive (R2R)",
+    0x75: "Network State Request",
+    0xF5: "Network State Response",
+    0x76: "Address Confirmation Push Request",
+    0xF6: "Address Confirmation Push Response",
+    0x77: "Token Offer",
+    0x78: "Version Announcement",
+}, default_value="Unknown Message Type")

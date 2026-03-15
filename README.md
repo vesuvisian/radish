@@ -2,11 +2,16 @@
 Radish is a tool for listening to and controlling Daikin HVAC systems locally. Currently, it is only able to sniff the raw RS-485 messages that are passed around between devices like a thermostat, air handler, and outdoor unit and relay them over MQTT, but its capabilities will grow over time.
 
 ## Parts
-- [AtomS3 Lite](https://shop.m5stack.com/products/atoms3-lite-esp32s3-dev-kit)
-- [Tail485](https://shop.m5stack.com/products/atom-tail485)
+- [AtomS3 Lite](https://shop.m5stack.com/products/atoms3-lite-esp32s3-dev-kit): WiFi chip and brain
+- [Tail485](https://shop.m5stack.com/products/atom-tail485): RS-485 converter
 - 12V power supply ([random example](https://www.amazon.com/inShareplus-Mounted-Switching-Connector-Adapter/dp/B01GD4ZQRS))
 
-Other ESP32s would also work, as would an RS-485 converter such as the MAX485, but the M5Stack products are cheap enough and have a nice form factor.
+Other ESP32s would also work, as would an RS-485 converter such as the MAX485, but the M5Stack products are cheap enough and have a nice form factor. 
+
+Other RS-485 options from M5Stack:
+- The [Atomic 485 Base](https://shop.m5stack.com/products/atomic-rs485-base) would allow you to power things through a USB-C cable instead of a 12V power supply, though it uses most of the GPIO pins.
+- The [RS485 to TTL Converter Unit](https://shop.m5stack.com/products/rs485-module) would also avoid blocking the USB-C port.
+- The [Isolated RS485 Unit](https://shop.m5stack.com/products/isolated-rs485-unit) is similar, but is probably the safest way to make sure you don't break your HVAC system.
 
 ## Software Prerequisites
 Once you have your ESP32, you can connect it to Home Assistant or another device with a USB cable. Flash it with [ESPHome](https://esphome.io/) and something similar to [radish.yaml](radish.yaml). If all goes well, you'll be able to see it on your network, and the LED will light up red when you click the main button.
@@ -26,3 +31,7 @@ An initial attempt at parsing the data is found in `mqtt_listener.py`. To use it
 
 ## References
 A big thanks to [@rrmayer](https://github.com/rrmayer) for sharing the ClimateTalk docs in his [climate-talk-web-api](https://github.com/rrmayer/climate-talk-web-api) repo and to [@kdschlosser](https://github.com/kdschlosser) for his own [ClimateTalk](https://github.com/kdschlosser/ClimateTalk) repo.
+
+## TODO:
+- Add remaining messages.
+- Determine why R2R ACK is appearing in random messages.
