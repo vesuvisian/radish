@@ -50,6 +50,7 @@ uart:
     direction: RX
     dummy_receiver: true
     after:
+      bytes: 256
       timeout: 100ms
     sequence:
       - mqtt.publish:

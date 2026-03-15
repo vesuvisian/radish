@@ -34,4 +34,5 @@ A big thanks to [@rrmayer](https://github.com/rrmayer) for sharing the ClimateTa
 
 ## TODO:
 - Add remaining messages.
-- Determine why R2R ACK is appearing in random messages.
+- Figure out MDI
+- Determine why R2R ACK is appearing in random messages. It seems to be an ACK and only appears when the packet number indicates a dataflow packet (128 or 160).
