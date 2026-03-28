@@ -116,15 +116,6 @@ class Frame:
         
         return body + struct.pack(self._FOOTER_FMT, chk)
 
-    # def __str__(self) -> str:
-    #     msg_logic = MessageRegistry.parse(self.msg_type, self.payload)
-    #     return (
-    #         f"[{self.src:#04x} -> {self.dst:#04x}] {msg_logic.name}\n"
-    #         f"  Route: Method={SEND_METHOD_MAP[self.method]}, Subnet={SUBNET_MAP[self.subnet]}\n"
-    #         f"  Node:  Type={NODE_TYPE_MAP[self.node_type]}, Params={self.params:#06x}\n"
-    #         f"  Data:  {msg_logic}"
-    #     )
-
     def __str__(self) -> str:
         message = MessageRegistry.parse(self.message_type, self.payload)
         return (

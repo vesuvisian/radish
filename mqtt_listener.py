@@ -41,7 +41,7 @@ def on_message(client, userdata, msg):
     print(
         f"[{timestamp}] {msg.topic}:\n{str(Frame.from_bytes(bytes.fromhex(msg.payload)))}\n"
     )
-    # print(msg.payload)
+    # print(msg.topic, msg.payload)
 
 
 def main():

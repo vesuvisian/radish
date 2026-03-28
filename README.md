@@ -33,6 +33,7 @@ An initial attempt at parsing the data is found in `mqtt_listener.py`. To use it
 A big thanks to [@rrmayer](https://github.com/rrmayer) for sharing the ClimateTalk docs in his [climate-talk-web-api](https://github.com/rrmayer/climate-talk-web-api) repo and to [@kdschlosser](https://github.com/kdschlosser) for his own [ClimateTalk](https://github.com/kdschlosser/ClimateTalk) repo.
 
 ## TODO:
-- Add remaining messages.
+- Verify all messages.
 - Figure out MDI
 - Determine why R2R ACK is appearing in random messages. It seems to be an ACK and only appears when the packet number indicates a dataflow packet (128 or 160).
+- pyproject.toml
