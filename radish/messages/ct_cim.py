@@ -51,6 +51,43 @@ __all__ = [
     "EchoResponse",
 ]
 
+_FAN_MODE_MAP = {
+    0x00: "Auto",
+    0x01: "Always On",
+    0x02: "Occupied On",
+}
+
+
+def _decode_air_handler_status_db0(value: bytes) -> list[str]:
+    """Decode Air Handler Status MDI DB ID 0x00 (20-byte block)."""
+    if len(value) != 20:
+        return []
+
+    airflow = (value[12] << 8) | value[13]
+    return [
+        "  Air Handler Interpretation (DB ID 0x00):",
+        f"    Critical Fault Code: {value[0]}",
+        f"    Minor Fault Code: {value[1]}",
+        f"    Heat Requested Demand: {value[2] * 0.5:.1f}%",
+        "    Fan Requested Mode: "
+        f"{value[3]} ({_FAN_MODE_MAP.get(value[3], 'Refer to Fan Demand Control Command')})",
+        f"    Fan Requested Demand: {value[4] * 0.5:.1f}%",
+        f"    Fan Requested Rate/Slew: {value[5]} second(s)",
+        f"    Fan Requested Delay: {value[6]} second(s)",
+        f"    Defrost Requested Demand: {value[7] * 0.5:.1f}%",
+        f"    Emergency Requested Demand: {value[8] * 0.5:.1f}%",
+        f"    Aux Requested Demand: {value[9] * 0.5:.1f}%",
+        f"    Humidification Requested Demand: {value[10] * 0.5:.1f}%",
+        f"    Dehumidification Requested Demand: {value[11] * 0.5:.1f}%",
+        f"    Current Airflow: {airflow} CFM",
+        f"    Current Heat Actual Status: {value[14] * 0.5:.1f}%",
+        f"    Current Fan Actual Status: {value[15] * 0.5:.1f}%",
+        f"    Fan Current Rate Status: {value[16]} second(s)",
+        f"    Fan Current Delay Remaining Status: {value[17]} second(s)",
+        f"    Current Humidification Actual Status: {value[18] * 0.5:.1f}%",
+        f"    Current Dehumidification Actual Status: {value[19] * 0.5:.1f}%",
+    ]
+
 
 @MessageRegistry.register(0x01)
 class GetConfigurationRequest(NoPayloadMessage):
@@ -114,12 +151,21 @@ class GetStatusResponse(Message):
 
         ret = [f"Status MDI Record Count: {len(self.db_id_records)}"]
         for idx, record in enumerate(self.db_id_records, start=1):
+            db_id = record["db_id"]
+            value = record["value"]
             ret.append(
                 f"Record {idx}: "
-                f"db_id=0x{record['db_id']:02x}, "
+                f"db_id=0x{db_id:02x}, "
                 f"length={record['db_len']}, "
-                f"value={record['value'].hex(':')}"
+                f"value={value.hex(':')}"
             )
+            if db_id == 0x00 and len(value) == 20:
+                ret.extend(_decode_air_handler_status_db0(value))
+            elif db_id == 0x01 and len(value) == 43:
+                ret.append(
+                    "  Record 2 Interpretation: 43-byte extended status block "
+                    "(currently undocumented/vendor-specific in this parser)"
+                )
         for warning in self.parse_warnings:
             ret.append(f"Parse Warning: {warning}")
         ret.append(f"Raw Payload: {self.data.hex(':')}")

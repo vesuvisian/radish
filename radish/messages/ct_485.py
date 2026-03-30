@@ -43,6 +43,9 @@ class RequestToReceive(Message):
         return self.data[9:17]
 
     def _format_output(self):
+        return self.pretty_format_standard()
+
+    def pretty_format_standard(self):
         if self.r2r_code == 0x00:
             msg_1 = "R2R Code: Request", "Coordinator"
         elif self.r2r_code == 0x06:
@@ -52,6 +55,21 @@ class RequestToReceive(Message):
         msg_2 = f"{msg_1[1]} MAC address: {self.mac_address.hex(':')}"
         msg_3 = f"Session ID: {self.session_id.hex(':')}"
         return f"{msg_1[0]}\n{msg_2}\n{msg_3}\nDEBUG: {self.data.hex(':')}"
+
+    def pretty_format_overlay(self, inferred_sender_role: str):
+        if self.r2r_code == 0x00:
+            code = "R2R Code: Request"
+        elif self.r2r_code == 0x06:
+            code = "R2R Code: ACK"
+        else:
+            code = f"Unknown R2R code (0x{self.r2r_code:02x})"
+        return (
+            f"{code}\n"
+            f"Overlay MAC address (inferred sender {inferred_sender_role}): "
+            f"{self.mac_address.hex(':')}\n"
+            f"Session ID: {self.session_id.hex(':')}\n"
+            f"DEBUG: {self.data.hex(':')}"
+        )
 
 
 @MessageRegistry.register(0x75)

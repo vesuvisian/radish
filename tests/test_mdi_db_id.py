@@ -57,6 +57,24 @@ class TestConfigAndStatusMdiFormatting(unittest.TestCase):
         self.assertIn("Parse Warning:", output)
         self.assertIn("Raw Payload: 01:02:ff", output)
 
+    def test_status_response_decodes_air_handler_db0_block(self):
+        msg = GetStatusResponse(
+            bytes.fromhex(
+                "00 14 "
+                "00 00 00 00 00 0f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "
+                "01 2b "
+                "00 ff ff ff ff 00 00 00 00 80 81 ff ff ff ff 00 00 00 80 "
+                "00 80 00 80 00 80 00 80 00 00 00 80 00 80 00 80 00 80 00 80 80 c1 00 00"
+            )
+        )
+        output = msg.pretty_format()
+
+        self.assertIn("Air Handler Interpretation (DB ID 0x00):", output)
+        self.assertIn("Critical Fault Code: 0", output)
+        self.assertIn("Fan Requested Rate/Slew: 15 second(s)", output)
+        self.assertIn("Current Airflow: 0 CFM", output)
+        self.assertIn("extended status block", output)
+
 
 if __name__ == "__main__":
     unittest.main()

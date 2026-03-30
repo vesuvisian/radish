@@ -58,5 +58,3 @@ Notes:
 | Get Node ID                | `0x7B`     | `0xFB`      | `GetNodeIdRequest`               | `GetNodeIdResponse`               | implemented |
 | Network Shared Data Sector | `0x7D`     | `0xFD`      | `NetworkSharedDataSectorRequest` | `NetworkSharedDataSectorResponse` | implemented |
 | Encapsulation              | `0x7E`     | `0xFE`      | `EncapsulationRequest`           | `EncapsulationResponse`           | implemented |
-
-

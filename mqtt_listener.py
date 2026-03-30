@@ -5,12 +5,24 @@ Reads and prints MQTT messages from your broker
 
 import os
 import sys
+import string
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
-from radish.frame import Frame
+from radish.frame import parse_frames
+
+
+def decode_hex_payload(payload: bytes) -> bytes:
+    """Decode ASCII-hex MQTT payloads, tolerating spaces/colons/newlines."""
+    text = payload.decode("ascii", errors="ignore")
+    hex_chars = "".join(ch for ch in text if ch in string.hexdigits)
+    if len(hex_chars) % 2 != 0:
+        raise ValueError(f"Odd number of hex digits ({len(hex_chars)})")
+    if not hex_chars:
+        return b""
+    return bytes.fromhex(hex_chars)
 
 
 def on_connect(client, userdata, flags, rc):
@@ -38,10 +50,26 @@ def on_disconnect(client, userdata, rc):
 def on_message(client, userdata, msg):
     """Callback for when a message is received"""
     timestamp = datetime.now().strftime("%H:%M:%S")
-    print(
-        f"[{timestamp}] {msg.topic}:\n{str(Frame.from_bytes(bytes.fromhex(msg.payload)))}\n"
-    )
-    # print(msg.topic, msg.payload)
+    try:
+        raw_data = decode_hex_payload(msg.payload)
+        frames, warnings = parse_frames(raw_data, validate_checksum=False)
+    except ValueError as exc:
+        print(f"[{timestamp}] {msg.topic}: payload decode error: {exc}")
+        return
+
+    if not frames and warnings:
+        print(f"[{timestamp}] {msg.topic}: no frames parsed")
+        for warning in warnings:
+            print(f"  warning: {warning}")
+        print()
+        return
+
+    print(f"[{timestamp}] {msg.topic}: parsed {len(frames)} frame(s)")
+    for frame in frames:
+        print(f"{frame}\n")
+    for warning in warnings:
+        print(f"  warning: {warning}")
+    print()
 
 
 def main():
