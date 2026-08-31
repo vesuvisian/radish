@@ -51,16 +51,17 @@ def parse_db_id_datagram(payload: bytes) -> tuple[list[dict[str, Any]], list[str
 
 
 class Message:
-    def __init__(self, data=None):
+    def __init__(self, data=None, parse_context=None):
         self.data = data
+        self.parse_context = parse_context or {}
 
     @property
     def name(self):
         return self.__class__.__name__
 
     @classmethod
-    def from_bytes(cls, data):
-        return cls(data)
+    def from_bytes(cls, data, parse_context=None):
+        return cls(data, parse_context=parse_context)
 
     def __repr__(self):
         return f"{self.name}: {self.data.hex(':')}"

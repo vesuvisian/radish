@@ -19,6 +19,6 @@ class MessageRegistry:
         return cls._registry.get(message_type, Message)
 
     @classmethod
-    def parse(cls, message_type, data):
+    def parse(cls, message_type, data, parse_context=None):
         msg_cls = cls.get_message_class(message_type)
-        return msg_cls.from_bytes(data)
+        return msg_cls.from_bytes(data, parse_context=parse_context)

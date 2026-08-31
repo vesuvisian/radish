@@ -39,12 +39,12 @@ class Frame:
     4. Footer (2 bytes): Checksum
     """
 
-    # > = Big Endian
+    # < = Little Endian for multi-byte fields
     # B (Dest), B (Src), B (Subnet), B (Method), H (Params), B (Node Type)
-    _MSG_HDR_FMT = ">BBBBHB" 
+    _MSG_HDR_FMT = "<BBBBHB"
     # B (Msg Type), B (Seq), B (Len)
-    _PKT_HDR_FMT = ">BBB"
-    _FOOTER_FMT = ">H"
+    _PKT_HDR_FMT = "<BBB"
+    _FOOTER_FMT = "<H"
     
     MSG_HDR_SIZE = struct.calcsize(_MSG_HDR_FMT)
     PKT_HDR_SIZE = struct.calcsize(_PKT_HDR_FMT)
@@ -66,6 +66,18 @@ class Frame:
     
     # Footer
     checksum: int = field(default=0, repr=False)
+
+    @staticmethod
+    def compute_checksum(frame_without_checksum: bytes) -> int:
+        """Compute CT-485 Fletcher checksum (seed 0xAA, 0x00)."""
+        sum1 = 0xAA
+        sum2 = 0x00
+        for byte in frame_without_checksum:
+            sum1 = (sum1 + byte) % 255
+            sum2 = (sum2 + sum1) % 255
+        crc_low = 255 - ((sum1 + sum2) % 255)
+        crc_high = 255 - ((sum1 + crc_low) % 255)
+        return (crc_high << 8) | crc_low
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Self:
@@ -112,12 +124,18 @@ class Frame:
         
         # Combine for checksum calculation
         body = m_hdr + p_hdr + self.payload
-        chk = sum(body) & 0xFFFF
+        chk = self.compute_checksum(body)
         
         return body + struct.pack(self._FOOTER_FMT, chk)
 
     def __str__(self) -> str:
-        message = MessageRegistry.parse(self.message_type, self.payload)
+        header_message = MessageRegistry.parse(self.message_type, b"")
+        payload_message_type = 0x00 if (self.packet_number & 0x80) else self.message_type
+        message = MessageRegistry.parse(
+            payload_message_type,
+            self.payload,
+            parse_context={"source_node_type": self.source_node_type},
+        )
         return (
             f"To: {self.destination_address} ({ADDRESS_TYPE_MAP[self.destination_address]})\n"
             f"From: {self.source_address} ({ADDRESS_TYPE_MAP[self.source_address]})\n"
@@ -125,8 +143,8 @@ class Frame:
             f"Send Method: {self.send_method} ({SEND_METHOD_MAP[self.send_method]})\n"
             f"Send Parameters: {self.send_parameters:#06x} ({decode_send_parameters(self.send_method, self.send_parameters, self.source_node_type)})\n"
             f"Source Node Type: {self.source_node_type} ({NODE_TYPE_MAP[self.source_node_type]})\n"
-            f"Message Type: {self.message_type:#04x} ({message.name})\n"
-            f"Packet Number: {self.packet_number} ({decode_packet_number(self.packet_number)})\n"
+            f"Message Type: {self.message_type:#04x} ({header_message.name})\n"
+            f"Packet Number: {self.packet_number} ({decode_packet_number(self.packet_number, self.message_type)})\n"
             f"Packet Length: {len(message.data)}\n"
             f"Payload:\n{tabulate(message.pretty_format())}\n"
             f"Checksum: {self.checksum:#06x}"

@@ -44,14 +44,14 @@ class RequestToReceive(Message):
 
     def _format_output(self):
         if self.r2r_code == 0x00:
-            msg_1 = "R2R Code: Request", "Coordinator"
+            msg_1 = "R2R Code: Request"
         elif self.r2r_code == 0x06:
-            msg_1 = "R2R Code: ACK", "Subordinate"
+            msg_1 = "R2R Code: ACK"
         else:
-            msg_1 = f"Unknown R2R code (0x{self.r2r_code:02x})", "Unknown"
-        msg_2 = f"{msg_1[1]} MAC address: {self.mac_address.hex(':')}"
+            msg_1 = f"Unknown R2R code (0x{self.r2r_code:02x})"
+        msg_2 = f"MAC address: {self.mac_address.hex(':')}"
         msg_3 = f"Session ID: {self.session_id.hex(':')}"
-        return f"{msg_1[0]}\n{msg_2}\n{msg_3}\nDEBUG: {self.data.hex(':')}"
+        return f"{msg_1}\n{msg_2}\n{msg_3}"
 
 
 @MessageRegistry.register(0x75)
@@ -97,15 +97,17 @@ class AddressConfirmationPushRequest(Message):
         return self.data[0]
 
     def _format_output(self):
-        ret = (
-            "Coordinator's virtual internal Subordinate Node Type: "
-            f"{self.internal_node_type} ({NODE_TYPE_MAP[self.internal_node_type]})"
-        )
+        lines = []
+        if self.internal_node_type != 0x00:
+            lines.append(
+                "Coordinator's virtual internal Subordinate Node Type: "
+                f"{self.internal_node_type} ({NODE_TYPE_MAP[self.internal_node_type]})"
+            )
         for i, byte in enumerate(self.data[1:], start=1):
             if byte == 0x00:
-                break
-            ret += f"\nNode type at index {i}: {byte} ({NODE_TYPE_MAP[byte]})"
-        return ret
+                continue
+            lines.append(f"Node type at index {i}: {byte} ({NODE_TYPE_MAP[byte]})")
+        return "\n".join(lines)
 
 
 @MessageRegistry.register(0xF6)

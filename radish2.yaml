@@ -7,6 +7,11 @@ esp32:
   framework:
     type: esp-idf
 
+external_components:
+  - source:
+      type: local
+      path: components
+
 # Internal RGB LED configuration
 light:
   - platform: esp32_rmt_led_strip
@@ -46,23 +51,25 @@ uart:
   tx_pin: GPIO2 # Swap GPIO pins or physical A/B wires if output is garbled
   rx_pin: GPIO1
   baud_rate: 9600
-  debug:
-    direction: RX
-    dummy_receiver: true
-    after:
-      bytes: 256
-      timeout: 100ms
-    sequence:
-      - mqtt.publish:
-          topic: radish/rs485/raw
-          payload: !lambda |-
-            char buf[5];
-            std::string hex;
-            for (auto b : bytes) {
-                sprintf(buf, "%02X ", b);
-                hex += buf;
-            }
-            return hex;
+
+radish:
+  uart_id: rs485_bus
+  mqtt_topic: radish/rs485/raw
+  publish_timeout_ms: 100ms
+  max_frame_bytes: 256
+  hex_delimiter: " "
+  enable_raw_mqtt_forwarding: true
+  publish_structured_events: true
+  local_node_type: 39
+  autonet_enabled: false
+  autonet_join_switch:
+    name: "Radish AutoNet Join"
+  autonet_slot_delay_min_ms: 100ms
+  autonet_slot_delay_max_ms: 2500ms
+  autonet_keepalive_timeout_ms: 120s
+  mac_from_device_identity: true
+  # Optional override. Must be 8 bytes with 00:00:09 prefix.
+  # local_mac_address: "00:00:09:12:34:56:78:9A"
 
 # Enable MQTT
 mqtt:

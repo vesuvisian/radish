@@ -22,7 +22,8 @@ class RangeDict(MissingKeyDict):
 ADDRESS_TYPE_MAP = RangeDict(
     {
         (0, 0): "Broadcast",
-        (1, 14): "CT1.0 Subnet 2 Subordinate Address",
+        (1, 1): "Priority Subordinate Address, Subnet 2 or 3, thermostat or zone controller",
+        (2, 14): "CT1.0 Subnet 2 Subordinate Address",
         (15, 15): "Reserved for Future Use (Overhead Validation)",
         (16, 62): ">CT1.0 Subnet 3 Subordinate Address",
         (63, 63): "Reserved for Future Use (Overhead Validation)",
@@ -111,19 +112,21 @@ def decode_send_parameters(
     send_method: int, send_parameters: int, source_node_type: int
 ) -> str:
     """Decode send parameters based on the send method."""
+    param_1 = send_parameters & 0xFF
+    param_2 = (send_parameters >> 8) & 0xFF
+
     if send_method == 0:  # Non-Routed
-        if send_parameters >= 0x0100:
+        if param_2 != 0:
             return "Error: Invalid Non-Routed Send Parameters"
         if source_node_type != 165:  # Not Network Coordinator
             if send_parameters != 0x0000:
-                return "Error: Invalid Non-Routed Send Parameters from Non-Coordinator"
-            return "Non-Routed Send Parameters from Non-Coordinator"
-        return f"Requesting device's index among its node type: {int(send_parameters)}"  # 'Index of Source Node among nodes of its own type'
+                return "Error: Invalid Non-Routed Send Parameters from Subordinate"
+            return "Non-Routed Send Parameters from Subordinate"
+        return f"Requesting device's index among its node type: {int(param_1)}"  # 'Index of Source Node among nodes of its own type'
     elif send_method == 1:  # Routing by Priority Control Command Device
         return "TBD"
     elif send_method == 2:  # Routing by Priority Node Type
-        node_type = send_parameters >> 8
-        param_2 = send_parameters & 0xFF
+        node_type = param_1
         if param_2 != 0x00:
             msg_2 = f"Requesting device's index among its node type: {int(param_2)}"  # 'Index of Source Node among nodes of its own type'
         else:
@@ -135,16 +138,22 @@ def decode_send_parameters(
         return f"Unknown Send Method (0x{send_parameters:04x})"
 
 
-def decode_packet_number(packet_number: int) -> str:
+def decode_packet_number(packet_number: int, message_type: int) -> str:
     """Decode packet number to determine if it's a request or response and its sequence."""
-    if packet_number & 128:  # Check if bit 7 is set
-        msg_1 = "Dataflow packet (R2R or ACK);"
+    if packet_number & 128:  # Check if bit 7 (dataflow) is set
+        msg_1 = "Dataflow packet;"
     else:
-        msg_1 = "Not a dataflow packet;"
-    if packet_number & 32:  # Check if bit 5 is set
-        msg_2 = "Node discovery request or CT1.0 device"
+        msg_1 = "Request/response packet;"
+    # Bit 6 is reserved
+    if packet_number & 32:  # Check if bit 5 (version) is set
+        if message_type == 0x79:
+            msg_2 = "Node discovery request"
+        else:
+            msg_2 = "CT1.0 device"
     else:
-        msg_2 = "Not a node discovery request, or is a CT2.0 device"
+        msg_2 = "CT2.0 device"
+    # Possible standard-breaking edge case if node discovery request but version bit not set
+    # Bits 4-0 are for chunk number, but v2.0 doesn't implement this yet
     return f"{msg_1} {msg_2}"
 
 
@@ -180,10 +189,12 @@ MESSAGE_TYPE_MAP = MissingKeyDict(
         0x94: "Set Network Node List Response",
         0x1D: "Direct Memory Access Read Request",
         0x9D: "Direct Memory Access Read Response",
+        0x1E: "Direct Memory Access Write Request",
+        0x9E: "Direct Memory Access Write Response",
         0x1F: "Set Manufacturer Generic Data Request",
         0x9F: "Set Manufacturer Generic Data Response",
-        0x20: "Manufacturer Generic Data Request",
-        0xA0: "Manufacturer Generic Data Response",
+        0x20: "Get Manufacturer Generic Data Request",
+        0xA0: "Get Manufacturer Generic Data Response",
         0x41: "Get User Menu Request",
         0xC1: "Get User Menu Response",
         0x42: "Set User Menu Update Request",
