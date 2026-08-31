@@ -5,12 +5,24 @@ Reads and prints MQTT messages from your broker
 
 import os
 import sys
+import string
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
-from radish.frame import Frame
+from radish.frame import parse_frames
+
+
+def decode_hex_payload(payload: bytes) -> bytes:
+    """Decode ASCII-hex MQTT payloads, tolerating spaces/colons/newlines."""
+    text = payload.decode("ascii", errors="ignore")
+    hex_chars = "".join(ch for ch in text if ch in string.hexdigits)
+    if len(hex_chars) % 2 != 0:
+        raise ValueError(f"Odd number of hex digits ({len(hex_chars)})")
+    if not hex_chars:
+        return b""
+    return bytes.fromhex(hex_chars)
 
 
 def parse_message_type_filter(raw_value: str | None) -> set[int] | None:
