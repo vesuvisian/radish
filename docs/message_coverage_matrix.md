@@ -3,9 +3,11 @@
 _Last validated 8/31/26_
 
 Source of truth for message types and high-level payloads: [docs/spec/ClimateTalk_2.0_CT-485_API_Reference_R01.pdf](spec/ClimateTalk_2.0_CT-485_API_Reference_R01.pdf)
+
 Source of truth for many lower-level payloads, such as various MDI: [docs/spec/ClimateTalk_2.0_Command_Reference_R01.pdf](spec/ClimateTalk_2.0_Command_Reference_R01.pdf)
 
 For these tables, the IDs column presents the request and response IDs, respectively, for each message if defined. The `Parsed?` column uses the following definitions:
+
 - `full`: concrete class exists and all payloads can be parsed
 - `partial`: class exists with raw or partially implemented payload parsing
 - `none`: not enough information present in the docs to implement
@@ -40,38 +42,43 @@ For these tables, the IDs column presents the request and response IDs, respecti
 | Set Echo Data                            | `0x5A`/`0xDA` | full    |       |
 
 Notes:
+
 - <sup>1</sup> Response parsed as raw DB ID datagrams by default. The following Configuration MDI values are further parsed by node type and DB ID (Command Reference Section 7.3):
-  - Furnace: `0x00`, `0x01`
-  - Air Handler: `0x00`, `0x01`, `0x02` seen in logs and not yet decoded
-  - Air Conditioner: `0x00`, `0x01`, `0x02`
-  - Heat Pump: `0x00`, `0x01`, `0x02`
-- <sup>2</sup> Response parsed as raw DB ID datagrams by default. The Following Status MDI semantic decoding are further parsed by node type and DB ID (Command Reference Section 7.4):
-  - Air Handler: `0x00`, `0x01` seen in logs and not yet decoded
-  - Heat Pump: `0x00`
+    - Furnace: `0x00`, `0x01`
+    - Air Handler: `0x00`, `0x01`, `0x02` seen in logs and not yet decoded
+    - Air Conditioner: `0x00`, `0x01`, `0x02`
+    - Heat Pump: `0x00`, `0x01`, `0x02`
+
+- <sup>2</sup> Response parsed as raw DB ID datagrams by default. The following Status MDI semantic decodings are further parsed by node type and DB ID (Command Reference Section 7.4):
+    - Air Handler: `0x00`, `0x01` seen in logs and not yet decoded
+    - Heat Pump: `0x00`
+
 - <sup>3</sup> Response parsed as Command Code and raw Command Data by default. The following Command Data are further parsed by Command Code (Command Reference Section 6.0), including any unknown trailing bytes:
-  - `0x60`: Damper Closure Position Demand (unknown extra bytes seen)
-  - `0x61` Subsystem Busy Status
-  - `0x62`: Dehumidification Demand
-  - `0x63`: Humidification Demand
-  - `0x64`: Heat Demand
-  - `0x65`: Cool Demand
-  - `0x66` Fan Demand
-  - `0x67`: Back-Up Heat Demand
-  - `0x68`: Defrost Heat Demand
-  - `0x69`: Aux / Alt Heat Demand
+    - `0x60`: Damper Closure Position Demand (unknown extra bytes seen)
+    - `0x61`: Subsystem Busy Status
+    - `0x62`: Dehumidification Demand
+    - `0x63`: Humidification Demand
+    - `0x64`: Heat Demand
+    - `0x65`: Cool Demand
+    - `0x66`: Fan Demand
+    - `0x67`: Back-Up Heat Demand
+    - `0x68`: Defrost Heat Demand
+    - `0x69`: Aux / Alt Heat Demand
+
 - <sup>4</sup> Response parsed as raw DB ID datagrams by default. The following Sensor MDI values are further parsed by node type and DB ID (Command Reference Section 7.5):
-  - Furnace: `0x00`, `0x01`
-  - Air Handler: `0x00`, `0x01`, `0x02` seen in logs and only partially decoded
-  - Air Conditioner: `0x00`
-  - Heat Pump: `0x00`
-  - Crossover: `0x00`, `0x01`, `0x02`
-  - Zone User Interface: `0x00`, `0x01`
-  - Zone Temperature Control: `0x00`, `0x01`
-  - Temperature Sensor: `0x00` (Remote Temperature)
+    - Furnace: `0x00`, `0x01`
+    - Air Handler: `0x00`, `0x01`, `0x02` seen in logs and only partially decoded
+    - Air Conditioner: `0x00`
+    - Heat Pump: `0x00`
+    - Crossover: `0x00`, `0x01`, `0x02`
+    - Zone User Interface: `0x00`, `0x01`
+    - Zone Temperature Control: `0x00`, `0x01`
+    - Temperature Sensor: `0x00` (Remote Temperature)
+
 - <sup>5</sup> Some Daikin-specific messages partially decoded
-  - `0x01`: Request/response completely unknown
-  - `0x02`: Request unknown; response partially decoded
-  - `0x03`: Request known; response partially decoded
+    - `0x01`: Request/response completely unknown
+    - `0x02`: Request unknown; response partially decoded
+    - `0x03`: Request known; response partially decoded
 
 ## CT-485 Specific Messages
 

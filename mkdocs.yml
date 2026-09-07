@@ -1,0 +1,18 @@
+site_name: Radish
+site_description: Daikin/ClimateTalk HVAC network tooling and ESPHome component docs.
+site_url: https://vesuvisian.github.io/radish/
+repo_url: https://github.com/vesuvisian/radish
+repo_name: vesuvisian/radish
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Protocol Specification Archive: spec/README.md
+  - Message Coverage Matrix: message_coverage_matrix.md
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
