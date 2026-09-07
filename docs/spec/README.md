@@ -32,7 +32,7 @@ The ClimateTalk Alliance was an industry organization formed in late 2009 to dev
 - [Water Heater Application Profile](ClimateTalk_2.0_Water_Heater_Application_Profile_R01.pdf)
 - [Zoning Application Profile](ClimateTalk_2.0_Zoning_Application_Profile_R01.pdf)
 
-### Specification Copyright and License
+## Copyright and License
 
 (Reprinted from the [original](http://web.archive.org/web/20170106041826/http://climatetalkalliance.org/ClimateTalkTechnology/SpecDownloadLegalAgreement.aspx))
 
