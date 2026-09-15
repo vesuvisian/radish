@@ -11,7 +11,7 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
 
-from radish.frame import parse_frames
+from radish.frame import Frame, parse_frames
 
 
 def decode_hex_payload(payload: bytes) -> bytes:
@@ -93,23 +93,32 @@ def on_disconnect(client, userdata, flags, reason_code, properties):
 
 def on_message(client, userdata, msg):
     """Callback for when a message is received"""
-    frame = Frame.from_bytes(bytes.fromhex(msg.payload))
-    if userdata.get("exclude_dataflow") and (frame.packet_number & 0x80):
-        return
-
-    allowed_message_types = userdata.get("message_types")
-    if allowed_message_types and frame.message_type not in allowed_message_types:
-        return
-
-    if userdata.get("dedupe_repeated"):
-        dedupe_key = make_dedupe_key(frame)
-        if userdata.get("last_dedupe_key") == dedupe_key:
-            return
-        userdata["last_dedupe_key"] = dedupe_key
-
     timestamp = datetime.now().strftime("%H:%M:%S")
-    print(f"[{timestamp}] {msg.topic}:\n{str(frame)}\n")
-    # print(msg.topic, msg.payload)
+    try:
+        raw_data = decode_hex_payload(msg.payload)
+        frames, warnings = parse_frames(raw_data, validate_checksum=False)
+    except ValueError as exc:
+        print(f"[{timestamp}] {msg.topic}: payload decode error: {exc}")
+        return
+
+    for frame in frames:
+        if userdata.get("exclude_dataflow") and (frame.packet_number & 0x80):
+            continue
+
+        allowed_message_types = userdata.get("message_types")
+        if allowed_message_types and frame.message_type not in allowed_message_types:
+            continue
+
+        if userdata.get("dedupe_repeated"):
+            dedupe_key = make_dedupe_key(frame)
+            if userdata.get("last_dedupe_key") == dedupe_key:
+                continue
+            userdata["last_dedupe_key"] = dedupe_key
+
+        print(f"[{timestamp}] {msg.topic}:\n{str(frame)}\n")
+
+    for warning in warnings:
+        print(f"  warning: {warning}")
 
 
 def main():

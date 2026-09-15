@@ -1,14 +1,14 @@
 # Radish
 
-Radish interfaces with Daikin / ClimateTalk-style HVAC networks over CT-485 (RS-485). An ESPHome device sniffs (and optionally joins) the bus and publishes frames to MQTT; Python tooling on a host decodes that traffic for analysis.
+Radish is a project that interfaces with Daikin / ClimateTalk-style HVAC networks over CT-485 (RS-485). An ESPHome device sniffs (and optionally joins) the network and publishes frames to MQTT. Additionally Python tooling on a host is able to decode that traffic for analysis.
 
 ## Getting started
 
 Work through these in order. You can stop after sniffing + decoding if you only need visibility into the network.
 
-1. **[Hardware setup](hardware.md)** — assemble the ESP32 + RS-485 kit and plan a safe tap onto the HVAC data pair (Data 1 / Data 2 only).
+1. **[Hardware setup](hardware.md)** — assemble the ESP32 + RS-485 kit (leave the HVAC bus disconnected for now).
 2. **[Software setup](software.md)** — create secrets, flash `radish.yaml`, confirm Wi‑Fi/MQTT/OTA **before** connecting to the bus.
-3. **Wire and verify** — connect A/B per the hardware guide, then confirm raw hex on `radish/rs485/raw`.
+3. **[Wire and verify](wire-and-verify.md)** — connect A/B to Data 1 / Data 2 only, then confirm raw hex on `radish/rs485/raw`.
 4. **[Python decoder](python-decoder.md)** — run `mqtt_listener.py` to pretty-print live frames and filter by message type.
 5. **Optional: [ESPHome component / AutoNet](esphome-component.md)** — move to `radish2.yaml` when you want on-device protocol handling and experimental network join. Keep AutoNet off until sniffing is solid.
 
@@ -31,12 +31,20 @@ Network join and subordinate responses are still experimental. Broad interrogati
 
 ## Documentation
 
+### Setup (operators)
+
 | Page | Contents |
 | --- | --- |
-| [Hardware setup](hardware.md) | Parts, alternatives, wiring, safety, link check |
+| [Hardware setup](hardware.md) | Parts, alternatives, off-bus assembly |
 | [Software setup](software.md) | Secrets, flash, verify, OTA |
+| [Wire and verify](wire-and-verify.md) | Bus tap, safety, raw MQTT link check |
 | [Python decoder](python-decoder.md) | Listener install, `.env` filters, package layout |
 | [ESPHome component](esphome-component.md) | `radish2.yaml`, AutoNet join, YAML options |
+
+### Reference (contributors)
+
+| Page | Contents |
+| --- | --- |
 | [Component internals](component-internals.md) | Firmware layout, state machines, behavior rules |
 | [Message coverage matrix](message_coverage_matrix.md) | Which message IDs the Python parser handles |
 | [Protocol specification archive](spec/README.md) | ClimateTalk PDF index and license notes |
@@ -53,3 +61,4 @@ Source, ESPHome profiles, and issue tracking live on GitHub: [vesuvisian/radish]
 - [esphome-comfortnet](https://github.com/esphome-comfortnet/esphome-comfortnet)
 - [ComfortNet-HVAC-ESP32](https://github.com/smurf12345/home-assistant/tree/main/ComfortNet-HVAC-ESP32)
 - [Home Assistant community discussion](https://community.home-assistant.io/t/local-comfortnet-hvac-monitoring-via-esp32/821948/16)
+- [openHAB community discussion](https://community.openhab.org/t/hvac-climatetalk-protocol/8367/3)

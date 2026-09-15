@@ -10,6 +10,8 @@ esp32:
 external_components:
   - source:
       type: local
+      # type: git
+      # url: https://github.com/vesuvisian/radish
       path: components
 
 # Internal RGB LED configuration
@@ -64,9 +66,9 @@ radish:
   autonet_enabled: false
   autonet_join_switch:
     name: "Radish AutoNet Join"
-  autonet_slot_delay_min_ms: 100ms
-  autonet_slot_delay_max_ms: 2500ms
-  autonet_keepalive_timeout_ms: 120s
+  # Optional fixed Slot Delay override (100ms..2500ms). When omitted, delay is
+  # derived per CT-485: pseudorandom uniform in that range, seeded from device MAC.
+  # slot_delay_ms: 250ms
   mac_from_device_identity: true
   # Optional override. Must be 8 bytes with 00:00:09 prefix.
   # local_mac_address: "00:00:09:12:34:56:78:9A"

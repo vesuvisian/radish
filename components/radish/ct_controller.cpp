@@ -44,7 +44,7 @@ ControllerStepResult CtController::on_raw_chunk(const std::vector<uint8_t> &raw_
 
   for (const CtFrame &frame : parse.frames) {
     this->counters_.frames_valid++;
-    this->maybe_reset_dataflow_cycle_(frame, now_ms);
+    this->maybe_reset_dataflow_cycle_(frame);
     ControllerStepResult per_frame = this->handle_frame_(frame, now_ms);
     out.tx_attempts.insert(out.tx_attempts.end(), per_frame.tx_attempts.begin(), per_frame.tx_attempts.end());
   }
@@ -143,7 +143,7 @@ ControllerStepResult CtController::handle_frame_(const CtFrame &frame, uint32_t 
     if (!this->tx_queue_.empty() && !this->token_offer_sent_this_cycle_) {
       this->pending_token_offer_ = true;
       this->pending_token_offer_frame_ = frame;
-      this->pending_token_due_ms_ = now_ms + this->slot_delay_ms_;
+      this->pending_token_due_ms_ = now_ms + this->autonet_client_.next_slot_delay_ms(frame, this->identity_);
       this->pending_token_epoch_ = this->bus_epoch_;
     }
     return out;
@@ -189,17 +189,13 @@ void CtController::clear_pending_tx_state_() {
   this->token_offer_sent_this_cycle_ = false;
 }
 
-void CtController::maybe_reset_dataflow_cycle_(const CtFrame &frame, uint32_t now_ms) {
+void CtController::maybe_reset_dataflow_cycle_(const CtFrame &frame) {
+  // Dataflow cycle boundary is Address Confirmation on subnet 0x03. A 120s miss
+  // of that confirmation causes AutoNet relinquish (AUTONET-KEEPALIVE-001), so
+  // there is no separate Token Offer cycle-timeout fallback.
   if (frame.message_type == CT_MSG_TYPE_ADDRESS_CONFIRMATION_PUSH && frame.subnet == CT_SUBNET_V2) {
     this->token_offer_sent_this_cycle_ = false;
     this->pending_token_offer_ = false;
-    this->last_cycle_reset_ms_ = now_ms;
-    return;
-  }
-  if ((now_ms - this->last_cycle_reset_ms_) > 120000U) {
-    this->token_offer_sent_this_cycle_ = false;
-    this->pending_token_offer_ = false;
-    this->last_cycle_reset_ms_ = now_ms;
   }
 }
 

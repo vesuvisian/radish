@@ -2,7 +2,7 @@
 
 Live CT-485 traffic published by the Radish device can be decoded on a host PC with `mqtt_listener.py` and the `radish` Python package. The listener subscribes to the raw MQTT topic, parses frames, and pretty-prints known message types.
 
-You need a working ESPHome node publishing hex frames (see [Software Setup](software.md)) and, for useful traffic, a bus connection (see [Hardware Setup](hardware.md)).
+You need a working ESPHome node publishing hex frames (see [Software Setup](software.md)) and, for useful traffic, a bus connection (see [Wire and Verify](wire-and-verify.md)).
 
 ## What it does
 
@@ -24,7 +24,7 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Dependencies today: `paho-mqtt` and `python-dotenv`.
+Current dependencies: `paho-mqtt` and `python-dotenv`
 
 ## Configure `.env`
 
@@ -64,7 +64,7 @@ MQTT_EXCLUDE_DATAFLOW=true
 MQTT_DEDUPE_REPEATED=true
 ```
 
-If nothing prints, confirm the ESP is online, the topic matches what the device publishes, and (for bus sniffing) that raw hex is flowing — see [Hardware Setup](hardware.md#verify-the-link).
+If nothing prints, confirm the ESP is online, the topic matches what the device publishes, and (for bus sniffing) that raw hex is flowing — see [Wire and Verify](wire-and-verify.md#verify-the-link).
 
 ## Package layout
 

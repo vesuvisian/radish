@@ -58,20 +58,28 @@ std::vector<uint8_t> AutoNetClient::generate_session_id_(const ControllerIdentit
   return session;
 }
 
+uint32_t AutoNetClient::next_slot_delay_ms(const CtFrame &frame, const ControllerIdentity &identity) {
+  return this->compute_slot_delay_ms_(frame, identity);
+}
+
 uint32_t AutoNetClient::compute_slot_delay_ms_(const CtFrame &frame, const ControllerIdentity &identity) {
-  const uint32_t min_delay = this->config_.slot_delay_min_ms;
-  const uint32_t max_delay = this->config_.slot_delay_max_ms;
-  const uint32_t range = (max_delay > min_delay) ? (max_delay - min_delay + 1U) : 1U;
+  if (this->config_.slot_delay_override_set) {
+    return this->config_.slot_delay_override_ms;
+  }
+
+  // CT-485: pseudorandom uniform Slot Delay in [100ms, 2500ms], 1ms steps, externally seeded
+  // so identical firmware images on different devices do not share delay sequences.
+  constexpr uint32_t kRange = CT_SLOT_DELAY_MAX_MS - CT_SLOT_DELAY_MIN_MS + 1U;  // 2401
   uint32_t hash = this->config_.deterministic_seed_set ? this->config_.deterministic_seed : 0xA55A5AA5U;
+  for (uint8_t b : identity.mac_address) {
+    hash = (hash * 33U) ^ b;
+  }
   hash ^= static_cast<uint32_t>(identity.node_type) << 24;
   hash ^= static_cast<uint32_t>(identity.address) << 16;
   hash ^= static_cast<uint32_t>(frame.source_address) << 8;
   hash ^= static_cast<uint32_t>(frame.packet_number);
   hash ^= this->sequence_counter_++;
-  for (uint8_t b : identity.mac_address) {
-    hash = (hash * 33U) ^ b;
-  }
-  return min_delay + (hash % range);
+  return CT_SLOT_DELAY_MIN_MS + (hash % kRange);
 }
 
 bool AutoNetClient::is_node_discovery_for_this_type_(const CtFrame &frame, uint8_t local_node_type) {
@@ -278,7 +286,7 @@ ServiceOutput AutoNetClient::on_frame(const CtFrame &frame, const ControllerIden
       is_node_discovery_for_this_type_(frame, identity.node_type)) {
     output.updated_session_id = generate_session_id_(identity, now_ms);
     this->pending_discovery_request_ = frame;
-    this->slot_delay_due_ms_ = now_ms + compute_slot_delay_ms_(frame, identity);
+    this->slot_delay_due_ms_ = now_ms + this->compute_slot_delay_ms_(frame, identity);
     this->state_ = AutoNetClientState::AWAITING_SLOT_DELAY_FOR_DISCOVERY_RESPONSE;
     output.autonet_state = this->state_;
     ESP_LOGI(TAG, "Node discovery matched (node_type=%u); slot-delay=%u ms; state -> %s",
@@ -345,9 +353,9 @@ ServiceOutput AutoNetClient::on_tick(const ControllerIdentity &identity, uint32_
 
   if (this->state_ == AutoNetClientState::ADDRESSED_ACTIVE && identity.subnet == CT_SUBNET_V2 &&
       this->last_address_confirmation_ms_ > 0 &&
-      (now_ms - this->last_address_confirmation_ms_) >= this->config_.keepalive_timeout_ms) {
+      (now_ms - this->last_address_confirmation_ms_) >= CT_AUTONET_KEEPALIVE_TIMEOUT_MS) {
     ESP_LOGW(TAG, "Keep-alive timeout (%u ms) exceeded; relinquishing",
-             static_cast<unsigned>(this->config_.keepalive_timeout_ms));
+             static_cast<unsigned>(CT_AUTONET_KEEPALIVE_TIMEOUT_MS));
     enter_unaddressed_(&output);
     return output;
   }

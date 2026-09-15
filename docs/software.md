@@ -1,24 +1,24 @@
 # Software Setup
 
-Flash and configure the Radish ESP32 with ESPHome before connecting it to the HVAC bus. The first install is typically over USB; later updates can use OTA.
+Flash and configure the Radish ESP32 with ESPHome before connecting it to the HVAC bus. The first install is typically over USB; later updates can be done over-the-air.
 
 ## Choose a profile
 
 | File | Role |
 | ---- | ---- |
 | [`radish.yaml`](https://github.com/vesuvisian/radish/blob/main/radish.yaml) | Simple sniffing<br>`uart.debug` RX logging publishes raw hex to MQTT<br>Does not join or interact with the CT-485 network. |
-| [`radish2.yaml`](https://github.com/vesuvisian/radish/blob/main/radish2.yaml) | Sniffing plus the local `radish` external component (`components/`)<br>Raw hex published via component, rather than `uard.debug`<br>Supports structured events and optional AutoNet join when enabled. |
+| [`radish2.yaml`](https://github.com/vesuvisian/radish/blob/main/radish2.yaml) | Sniffing plus the local `radish` external component (`components/`)<br>Raw hex published via component, rather than `uart.debug`<br>Supports structured events and optional AutoNet join when enabled. |
 
 Start with `radish.yaml` to prove Wi‑Fi, MQTT, and raw capture. It is all that is necessary, along with `mqtt_listener.py`, to get a sense for how messages are passed around the network and to extract live data. Move to `radish2.yaml` when you want the custom component / AutoNet paths in order to actually be able to join the network and send messages — see the [ESPHome Component guide](esphome-component.md).
 
-Both stock profiles target the AtomS3 Lite + Tail485 UART pins. See [Hardware](hardware.md) for parts and wiring.
+Both stock profiles target the AtomS3 Lite + Tail485 UART pins. See [Hardware](hardware.md) for parts and assembly.
 
 ## Prerequisites
 
 - [ESPHome](https://esphome.io/) (Dashboard via Home Assistant, or the ESPHome CLI)
 - An MQTT broker the device can reach (for example Mosquitto on Home Assistant)
 - USB access to the ESP32 for the first flash
-- This repository cloned locally if you use `radish2.yaml` (it loads `external_components` from `./components`)
+- If you're using `radish2.yaml`, the repository either needs to be cloned locally (it loads `external_components` from `./components`), or you can point the YAML at the GitHub repo
 
 ## Secrets
 
@@ -40,15 +40,7 @@ Before flashing, edit the profile as needed:
 1. **MQTT broker** — stock configs use `homeassistant.local`; change `mqtt.broker` if yours differs.
 2. **API encryption / OTA / fallback AP passwords** — leave the empty placeholder strings so ESPHome can generate values on first compile, or set your own.
 3. **Wi‑Fi** — already wired to `!secret wifi_ssid` / `wifi_password`.
-4. **`radish2.yaml` only** — confirm `external_components` path points at this repo’s `components/` directory when compiling from your working tree.
-
-Example OTA block (already present in both profiles):
-
-```yaml
-ota:
-  - platform: esphome
-    password: "" # Generated password
-```
+4. **`radish2.yaml` only** — confirm `external_components` path is pointed either to the correct local location or to the repo
 
 ## First flash (USB)
 
@@ -64,8 +56,8 @@ If Wi‑Fi fails, the device opens the **Radish Fallback Hotspot** captive porta
 With the device powered and on the network (still no HVAC connection required):
 
 1. Confirm it appears online in ESPHome / Home Assistant.
-2. Press the AtomS3 button — the status LED should light (stock profiles wire GPIO41 → LED).
-3. Confirm MQTT connectivity (broker logs or a test subscribe). Raw CT-485 traffic appears on `radish/rs485/raw` only after the bus is wired; see [Hardware](hardware.md#verify-the-link).
+2. Press the AtomS3 button — the status LED should light (stock profiles wire GPIO41 → LED), and the button press should appear in the DEBUG logs.
+3. Confirm MQTT connectivity (broker logs or a test subscribe). Raw CT-485 traffic appears on `radish/rs485/raw` only after the bus is wired; see [Wire and Verify](wire-and-verify.md).
 
 ## OTA updates
 
@@ -77,6 +69,6 @@ After the first successful flash with the `ota:` platform enabled:
 
 USB remains available as a fallback if OTA fails (wrong password, device offline, or broken Wi‑Fi).
 
-## After software is healthy
+## Next steps
 
-Wire to the CT-485 data pair only once Wi‑Fi, MQTT, and basic device checks look good. Follow [Hardware](hardware.md) for safety and polarity.
+Wire to the CT-485 data pair only once Wi‑Fi, MQTT, and basic device checks look good. Continue in [Wire and Verify](wire-and-verify.md).

@@ -6,18 +6,33 @@ repo_name: vesuvisian/radish
 
 theme:
   name: material
+  features:
+    - navigation.sections
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
 
 nav:
   - Home: index.md
-  - Hardware Setup: hardware.md
-  - Software Setup: software.md
-  - Python Decoder: python-decoder.md
-  - ESPHome Component: esphome-component.md
-  - Component Internals: component-internals.md
-  - Protocol Specification Archive: spec/README.md
-  - Message Coverage Matrix: message_coverage_matrix.md
+  - Setup:
+      - Hardware Setup: hardware.md
+      - Software Setup: software.md
+      - Wire and Verify: wire-and-verify.md
+      - Python Decoder: python-decoder.md
+      - ESPHome Component: esphome-component.md
+  - Reference:
+      - Component Internals: component-internals.md
+      - Message Coverage Matrix: message_coverage_matrix.md
+      - Protocol Specification Archive: spec/README.md
 
 markdown_extensions:
   - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
   - toc:
       permalink: true

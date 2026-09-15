@@ -14,15 +14,15 @@ Full setup guides, status, specs, and references:
 
 **https://vesuvisian.com/radish/**
 
-Source for the site lives under [`docs/`](docs/). Start with [`docs/index.md`](docs/index.md) for the getting-started path (hardware → flash → decode → optional AutoNet).
+Source for the site lives under [`docs/`](docs/). Start with [`docs/index.md`](docs/index.md) for the getting-started path (hardware → flash → wire & verify → decode → optional AutoNet).
 
 ### Local Documentation
 
-To view the docs locally, run:
+To view and edit the docs locally, run:
 
 ```bash
 pip install -r docs/requirements.txt
-mkdocs serve
+mkdocs serve --livereload
 ```
 
 Then open the provided URL (usually `http://127.0.0.1:8000/radish`).

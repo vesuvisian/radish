@@ -20,7 +20,7 @@ def _half_percent(value: int) -> float:
 
 def _decode_air_handler_status_db_00(value: bytes) -> dict[str, object]:
     """Decode Table 162 (Air Handler Status data, DB ID 0x00)."""
-    airflow_cfm = int.from_bytes(value[12:14], "big")
+    airflow_cfm = int.from_bytes(value[12:14], "little")
     fan_mode = value[3]
     fan_mode_name = FAN_DEMAND_MODE_MAP.get(fan_mode, "Unknown")
     return {

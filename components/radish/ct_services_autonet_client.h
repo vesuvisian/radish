@@ -12,6 +12,9 @@ class AutoNetClient {
   ServiceOutput on_frame(const CtFrame &frame, const ControllerIdentity &identity, uint32_t now_ms);
   ServiceOutput on_tick(const ControllerIdentity &identity, uint32_t now_ms);
   AutoNetClientState state() const { return this->state_; }
+  // Spec Slot Delay (or YAML override). Same generator for discovery, token offer, and
+  // broadcast address-confirmation arbitration.
+  uint32_t next_slot_delay_ms(const CtFrame &frame, const ControllerIdentity &identity);
 
  private:
   std::vector<uint8_t> generate_session_id_(const ControllerIdentity &identity, uint32_t now_ms);

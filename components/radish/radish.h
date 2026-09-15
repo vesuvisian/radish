@@ -52,7 +52,11 @@ class RadishComponent : public Component, public uart::UARTDevice {
     identity.subnet = local_subnet;
     this->controller_.set_identity(identity);
   }
-  void set_slot_delay_ms(uint32_t slot_delay_ms) { this->controller_.set_slot_delay_ms(slot_delay_ms); }
+  void set_slot_delay_ms(uint32_t slot_delay_ms) {
+    this->autonet_config_.slot_delay_override_ms = slot_delay_ms;
+    this->autonet_config_.slot_delay_override_set = true;
+    this->controller_.set_autonet_config(this->autonet_config_);
+  }
   void set_local_mac_address(const std::string &local_mac_address) { this->local_mac_address_ = local_mac_address; }
   void set_mac_from_device_identity(bool mac_from_device_identity) {
     this->mac_from_device_identity_ = mac_from_device_identity;
@@ -66,24 +70,6 @@ class RadishComponent : public Component, public uart::UARTDevice {
   }
   void set_autonet_join_switch(switch_::Switch *autonet_join_switch) {
     this->autonet_join_switch_ = autonet_join_switch;
-  }
-  void set_autonet_slot_delay_min_ms(uint32_t value_ms) {
-    this->autonet_config_.slot_delay_min_ms = value_ms;
-    if (this->autonet_config_.slot_delay_max_ms < this->autonet_config_.slot_delay_min_ms) {
-      this->autonet_config_.slot_delay_max_ms = this->autonet_config_.slot_delay_min_ms;
-    }
-    this->controller_.set_autonet_config(this->autonet_config_);
-  }
-  void set_autonet_slot_delay_max_ms(uint32_t value_ms) {
-    this->autonet_config_.slot_delay_max_ms = value_ms;
-    if (this->autonet_config_.slot_delay_max_ms < this->autonet_config_.slot_delay_min_ms) {
-      this->autonet_config_.slot_delay_min_ms = this->autonet_config_.slot_delay_max_ms;
-    }
-    this->controller_.set_autonet_config(this->autonet_config_);
-  }
-  void set_autonet_keepalive_timeout_ms(uint32_t value_ms) {
-    this->autonet_config_.keepalive_timeout_ms = value_ms;
-    this->controller_.set_autonet_config(this->autonet_config_);
   }
   void set_autonet_deterministic_seed(uint32_t value) {
     this->autonet_config_.deterministic_seed = value;

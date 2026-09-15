@@ -79,16 +79,19 @@ Locally addressed R2R: empty queue → R2R ACK; non-empty → send next queued f
 
 On `TokenOffer (0x77)` for subnet `0x03` or broadcast subnet, if the queue has work and this node has not already answered this cycle:
 
-- schedule delayed `TokenOfferResponse (0xF7)` using **`slot_delay_ms`** (controller knob; default `250ms`)
+- schedule delayed `TokenOfferResponse (0xF7)` using the same **Slot Delay** generator as Node Discovery (CT-485 100–2500 ms pseudorandom, or optional YAML `slot_delay_ms` override)
 - cancel if any new bus chunk arrives before the delay elapses
-- at most one response per cycle; cycle resets on `AddressConfirmationPush` on subnet `0x03`, or a 120s timeout fallback
+- at most one response per dataflow cycle; the cycle resets on `AddressConfirmationPush` on subnet `0x03`
 
-### Slot-delay knobs (do not confuse)
+### Slot Delay
+
+CT-485 defines a Slot Delay as a pseudorandom delay from **100 ms to 2500 ms** (1 ms steps, uniform over the range). The PRNG is externally seeded (device MAC by default, or `autonet_deterministic_seed`) so identical firmware on different devices does not share delay sequences. The same generator is used for Node Discovery, Token Offer, and broadcast Address Confirmation arbitration. Optional YAML `slot_delay_ms` forces a fixed value in that range instead of deriving one.
 
 | Option | Used by | Purpose |
 | --- | --- | --- |
-| `slot_delay_ms` | `CtController` Token Offer path | Fixed delay before `TokenOfferResponse` |
-| `autonet_slot_delay_min_ms` / `autonet_slot_delay_max_ms` | `AutoNetClient` | Random window for discovery response and broadcast Address Confirmation arbitration |
+| *(derived)* | `CtController` + `AutoNetClient` | Spec Slot Delay for discovery / Token Offer / broadcast Address Confirmation |
+| `slot_delay_ms` | same | Optional fixed override (100–2500 ms) |
+| `autonet_deterministic_seed` | `AutoNetClient` | Optional external PRNG seed (tests / reproducibility) |
 
 User-facing YAML tables: [ESPHome Component guide](esphome-component.md#yaml-options).
 
@@ -107,18 +110,19 @@ AWAITING_SET_ADDRESS
     │  valid SetAddress (MAC/session + write)
     ▼
 ADDRESSED_ACTIVE
-    │  keepalive miss / node-list mismatch / SetAddress 0/0 / join disabled
+    │  AddrConf Broadcast miss 120s / Expected Node Position mismatch /
+    │  SetAddress 0/0 / join disabled
     ▼
 RELINQUISH_PENDING ──► UNADDRESSED (assignment cleared)
 ```
 
 ### Behavior notes
 
-- Discovery (`0x79`): slot-delay gated (`AUTONET-DISC-001`); any bus traffic during the window cancels and returns to `UNADDRESSED` (`AUTONET-DISC-002`)
+- Discovery (`0x79`): Slot Delay gated (`AUTONET-DISC-001`); any bus traffic during the window cancels and returns to `UNADDRESSED` (`AUTONET-DISC-002`)
 - Set Address (`0x7A`): accept only if write-enabled and MAC/session match (`AUTONET-SETADDR-001`); `0/0` forces relinquish (`AUTONET-SETADDR-002`)
 - Get Node ID (`0x7B`): addressed request → `0xFB` with node type, MAC, session (`AUTONET-NODEID-001`)
-- Address Confirmation (`0x76`): direct → immediate `0xF6` (`AUTONET-ADDRCONF-001`); broadcast → slot-delay arbitration, cancel on bus activity (`AUTONET-ADDRCONF-002`)
-- Keepalive / node-list mismatch while addressed on subnet `0x03` → relinquish (`AUTONET-KEEPALIVE-001`)
+- Address Confirmation (`0x76`): direct → immediate `0xF6` (`AUTONET-ADDRCONF-001`); broadcast → Slot Delay arbitration, cancel on bus activity (`AUTONET-ADDRCONF-002`)
+- Address Confirmation Broadcast missing for **120 s**, or Expected Node Position mismatch while addressed on subnet `0x03` → relinquish address/subnet and wait to be re-addressed (`AUTONET-KEEPALIVE-001`); timeout is `CT_AUTONET_KEEPALIVE_TIMEOUT_MS` (not YAML-configurable)
 - Disabling AutoNet (YAML or join switch) forces relinquish and clears assignment
 - Effective MAC is fixed at runtime, 8 bytes, prefix `00:00:09` (`AUTONET-MAC-001`); explicit `local_mac_address` wins over device-identity derivation
 - Address/subnet are **not** YAML fields — assigned only via AutoNet `SetAddressRequest`
@@ -178,11 +182,11 @@ IDs are referenced in implementation notes and tests. Full Networking Spec: [CT-
 | `CTRL-DISPATCH-001` | One service path per frame class | — |
 | `CTRL-QUEUE-001`–`003` | Bounded queue, source tags, prioritize responses, drop on overflow | `7.5`, `7.6.1`, `7.9` |
 | `CTRL-R2R-001`–`003` | Addressed R2R ACK vs dequeue; ignore non-addressed | `7.4.1`, `7.5.3`, `7.8` |
-| `CTRL-TOB-001`–`004` | Token Offer slot delay, cancel on bus, once per cycle | `7.5.4`, `11.1`, `11.13` |
+| `CTRL-TOB-001`–`004` | Token Offer slot delay, cancel on bus, once per cycle (reset on AddrConf) | `7.5.4`, `11.1`, `11.13` |
 | `AUTONET-STATE-001` | Explicit client states | `11.12` |
 | `AUTONET-DISC-001`–`002` | Discovery slot delay; cancel on bus activity | `11.1`, `11.12` |
 | `AUTONET-SETADDR-001`–`002` | MAC/session/write gate; `0/0` relinquish | `11.12` |
 | `AUTONET-NODEID-001` | Addressed Get Node ID → `0xFB` | `11.12` |
-| `AUTONET-KEEPALIVE-001` | Confirmation timeout / node-list mismatch → relinquish | `9.1.2` |
+| `AUTONET-KEEPALIVE-001` | No Address Confirmation Broadcast for 120 s, or Expected Node Position mismatch → relinquish and re-enter | `9.1.2` |
 | `AUTONET-ADDRCONF-001`–`002` | Direct vs broadcast Address Confirmation | `7.4.2`, `9.1.2`, `11.1` |
 | `AUTONET-MAC-001` | Stable 8-byte `00:00:09…` MAC | `11.12` |

@@ -66,11 +66,20 @@ enum class AutoNetClientState {
   RELINQUISH_PENDING,
 };
 
+// CT-485 Slot Delay range (Networking Spec): 100ms..2500ms, 1ms granularity.
+constexpr uint32_t CT_SLOT_DELAY_MIN_MS = 100;
+constexpr uint32_t CT_SLOT_DELAY_MAX_MS = 2500;
+// CT-485 AutoNet keepalive / address-confirmation timeout (fixed by spec).
+constexpr uint32_t CT_AUTONET_KEEPALIVE_TIMEOUT_MS = 120000;
+
 struct AutoNetConfig {
   bool enabled{true};
-  uint32_t slot_delay_min_ms{100};
-  uint32_t slot_delay_max_ms{2500};
-  uint32_t keepalive_timeout_ms{120000};
+  // Optional YAML override. When unset, Slot Delay is derived per CT-485
+  // (pseudorandom uniform in [100ms, 2500ms], externally seeded).
+  bool slot_delay_override_set{false};
+  uint32_t slot_delay_override_ms{0};
+  // External PRNG seed for Slot Delay (tests / reproducibility). When unset,
+  // MAC address and per-call mix provide device-unique seeding.
   uint32_t deterministic_seed{0};
   bool deterministic_seed_set{false};
 };

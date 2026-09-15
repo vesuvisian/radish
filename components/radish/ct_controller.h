@@ -28,7 +28,6 @@ class CtController {
   void set_enable_raw_mqtt_forwarding(bool enabled) { this->enable_raw_mqtt_forwarding_ = enabled; }
   void set_identity(const ControllerIdentity &identity) { this->identity_ = identity; }
   void set_max_tx_queue_depth(size_t max_tx_queue_depth) { this->max_tx_queue_depth_ = max_tx_queue_depth; }
-  void set_slot_delay_ms(uint32_t slot_delay_ms) { this->slot_delay_ms_ = slot_delay_ms; }
   void set_autonet_config(const AutoNetConfig &config);
 
   ControllerStepResult on_raw_chunk(const std::vector<uint8_t> &raw_bytes, uint32_t now_ms);
@@ -41,7 +40,7 @@ class CtController {
  private:
   ControllerStepResult handle_frame_(const CtFrame &frame, uint32_t now_ms);
   void append_service_outputs_(const ServiceOutput &service_output, ControllerStepResult *out);
-  void maybe_reset_dataflow_cycle_(const CtFrame &frame, uint32_t now_ms);
+  void maybe_reset_dataflow_cycle_(const CtFrame &frame);
   void clear_pending_tx_state_();
   bool is_for_local_node_(const CtFrame &frame) const;
   bool is_subnet3_token_offer_(const CtFrame &frame) const;
@@ -66,8 +65,6 @@ class CtController {
   uint64_t bus_epoch_{0};
 
   bool token_offer_sent_this_cycle_{false};
-  uint32_t last_cycle_reset_ms_{0};
-  uint32_t slot_delay_ms_{250};
   bool pending_token_offer_{false};
   uint32_t pending_token_due_ms_{0};
   uint64_t pending_token_epoch_{0};
