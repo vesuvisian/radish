@@ -2,6 +2,8 @@
 
 Radish talks to ClimateTalk networks over RS-485. You need an ESP32 (or compatible) device running ESPHome, plus an RS-485 transceiver. Assemble the kit here; connect to the HVAC bus only after [Software Setup](software.md), in [Wire and Verify](wire-and-verify.md).
 
+![AtomS3 Lite with Tail485 and A/B leads on the bench](assets/radish.png)
+
 ## Recommended kit
 
 Known-good setup:

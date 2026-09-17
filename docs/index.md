@@ -1,5 +1,9 @@
 # Radish
 
+<p align="center">
+  <img src="assets/logo.png" alt="Radish logo" width="280">
+</p>
+
 Radish is a project that interfaces with Daikin / ClimateTalk-style HVAC networks over CT-485 (RS-485). An ESPHome device sniffs (and optionally joins) the network and publishes frames to MQTT. Additionally Python tooling on a host is able to decode that traffic for analysis.
 
 ## Getting started
@@ -35,16 +39,17 @@ Network join and subordinate responses are still experimental. Broad interrogati
 
 | Page | Contents |
 | --- | --- |
-| [Hardware setup](hardware.md) | Parts, alternatives, off-bus assembly |
+| [Hardware setup](hardware.md) | Parts, alternatives, off-bus assembly, photo of the kit |
 | [Software setup](software.md) | Secrets, flash, verify, OTA |
 | [Wire and verify](wire-and-verify.md) | Bus tap, safety, raw MQTT link check |
-| [Python decoder](python-decoder.md) | Listener install, `.env` filters, package layout |
+| [Python decoder](python-decoder.md) | Listener install, `.env` filters, example decoded output |
 | [ESPHome component](esphome-component.md) | `radish2.yaml`, AutoNet join, YAML options |
 
 ### Reference (contributors)
 
 | Page | Contents |
 | --- | --- |
+| [Glossary](glossary.md) | CT-485 / hardware / Radish terms |
 | [Component internals](component-internals.md) | Firmware layout, state machines, behavior rules |
 | [Message coverage matrix](message_coverage_matrix.md) | Which message IDs the Python parser handles |
 | [Protocol specification archive](spec/README.md) | ClimateTalk PDF index and license notes |

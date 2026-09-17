@@ -76,9 +76,6 @@ class RadishComponent : public Component, public uart::UARTDevice {
     this->autonet_config_.deterministic_seed_set = true;
     this->controller_.set_autonet_config(this->autonet_config_);
   }
-  void set_publish_structured_events(bool publish_structured_events) {
-    this->publish_structured_events_ = publish_structured_events;
-  }
 
  protected:
   void flush_buffer_(uint32_t now_ms);
@@ -95,7 +92,6 @@ class RadishComponent : public Component, public uart::UARTDevice {
   uint32_t last_rx_ms_{0};
   size_t max_frame_bytes_{256};
   bool enable_raw_mqtt_forwarding_{true};
-  bool publish_structured_events_{true};
   std::string local_mac_address_{};
   bool mac_from_device_identity_{true};
   switch_::Switch *autonet_join_switch_{nullptr};

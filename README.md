@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Radish" width="280">
+</p>
+
 # radish
 
 Radish interfaces with Daikin / ClimateTalk-style HVAC networks over CT-485 (RS-485).

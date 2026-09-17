@@ -1,4 +1,4 @@
-# ESPHome Component (AutoNet)
+# ESPHome Component
 
 The `radish` external component (used by [`radish2.yaml`](https://github.com/vesuvisian/radish/blob/main/radish2.yaml)) goes beyond passive sniffing: it can parse CT-485 frames on-device, answer dataflow opportunities, and optionally **join the network as a subordinate** via AutoNet.
 
@@ -61,7 +61,6 @@ Local address and subnet are assigned at runtime by the coordinator — they are
 
 - Broad application interrogation (status, sensors, menus, control commands, etc. as an active querier)
 - Custom responses for most other application message IDs (they are routed but unanswered)
-- Emitting `publish_structured_events` from C++ (option exists; raw MQTT forwarding is what works today)
 
 Treat network join as experimental: useful for learning AutoNet and holding a subordinate slot, not as a full thermostat replacement.
 
@@ -77,7 +76,6 @@ radish:
   max_frame_bytes: 256
   hex_delimiter: " "
   enable_raw_mqtt_forwarding: true
-  publish_structured_events: true
   local_node_type: 39
   autonet_enabled: false
   autonet_join_switch:
@@ -96,7 +94,6 @@ radish:
 | `hex_delimiter` | `" "` | Matches the Python listener’s spaced-hex expectation |
 | `publish_timeout_ms` | `100ms` | Flush UART buffer to the controller / MQTT |
 | `max_frame_bytes` | `256` | Max chunk size before forced flush |
-| `publish_structured_events` | `true` | Reserved; not emitted by firmware yet |
 
 ### Identity
 

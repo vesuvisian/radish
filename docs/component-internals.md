@@ -40,7 +40,6 @@ CtController::tick() advances AutoNet slot delays, keepalive, and pending Token 
 
 - Custom responses for most application message IDs (routed to `SubordinateService`, then ignored)
 - Active interrogation (device does not originate status/sensor/menu/control queries)
-- `publish_structured_events` — accepted in YAML and logged at boot, **not emitted** by C++ today (raw MQTT hex is the working path)
 
 ## Runtime behavior
 

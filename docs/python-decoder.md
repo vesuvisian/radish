@@ -56,6 +56,58 @@ python mqtt_listener.py
 
 On connect you should see subscription confirmation, then timestamped frame dumps as traffic arrives. Stop with Ctrl+C.
 
+### Example output
+
+With polarity correct and the HVAC talking, a typical node-discovery / address-confirmation exchange looks like:
+
+```text
+[15:43:44] radish/rs485/raw:
+To: 0 (Broadcast)
+From: 255 (Network Coordinator Address)
+Subnet: 0 (All subnets)
+Send Method: 0 (Non-Routed)
+Send Parameters: 0x0000 (Requesting device's index among its node type: 0)
+Source Node Type: 165 (Network Coordinator)
+Message Type: 0x79 (Node Discovery Request)
+Packet Number: 32 (Request/response packet; Node discovery request)
+Packet Length: 1
+Payload:
+  Node ID Filter: 0
+Checksum: 0xd93b
+
+[15:43:47] radish/rs485/raw:
+To: 0 (Broadcast)
+From: 255 (Network Coordinator Address)
+Subnet: 3 (>v1.0 Subordinates)
+Send Method: 0 (Non-Routed)
+Send Parameters: 0x0000 (Requesting device's index among its node type: 0)
+Source Node Type: 165 (Network Coordinator)
+Message Type: 0x76 (Address Confirmation Push Request)
+Packet Number: 0 (Request/response packet; CT2.0 device)
+Packet Length: 63
+Payload:
+  Coordinator's virtual internal Subordinate Node Type: 3 (Air Handler)
+  Node type at index 1: 1 (Thermostat)
+  Node type at index 2: 5 (Heat Pump)
+Checksum: 0x638a
+
+[15:43:48] radish/rs485/raw:
+To: 255 (Network Coordinator Address)
+From: 1 (Priority Subordinate Address, Subnet 2 or 3, thermostat or zone controller)
+Subnet: 3 (>v1.0 Subordinates)
+Send Method: 0 (Non-Routed)
+Send Parameters: 0x0000 (Non-Routed Send Parameters from Subordinate)
+Source Node Type: 1 (Thermostat)
+Message Type: 0xf6 (Address Confirmation Push Response)
+Packet Number: 0 (Request/response packet; CT2.0 device)
+Packet Length: 63
+Payload:
+  Coordinator's virtual internal Subordinate Node Type: 3 (Air Handler)
+  Node type at index 1: 1 (Thermostat)
+  Node type at index 2: 5 (Heat Pump)
+Checksum: 0xb55b
+```
+
 Example filter for sensor and user-menu responses only:
 
 ```env

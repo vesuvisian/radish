@@ -6,8 +6,8 @@ Flash and configure the Radish ESP32 with ESPHome before connecting it to the HV
 
 | File | Role |
 | ---- | ---- |
-| [`radish.yaml`](https://github.com/vesuvisian/radish/blob/main/radish.yaml) | Simple sniffing<br>`uart.debug` RX logging publishes raw hex to MQTT<br>Does not join or interact with the CT-485 network. |
-| [`radish2.yaml`](https://github.com/vesuvisian/radish/blob/main/radish2.yaml) | Sniffing plus the local `radish` external component (`components/`)<br>Raw hex published via component, rather than `uart.debug`<br>Supports structured events and optional AutoNet join when enabled. |
+| [`radish.yaml`](https://github.com/vesuvisian/radish/blob/main/radish.yaml) | <ul><li>Simple sniffing</li><li><code>uart.debug</code> RX logging publishes raw hex to MQTT</li><li>Does not join or interact with the CT-485 network</li></ul> |
+| [`radish2.yaml`](https://github.com/vesuvisian/radish/blob/main/radish2.yaml) | <ul><li>Sniffing plus the local <code>radish</code> external component (<code>components/</code>)</li><li>Raw hex published via component, rather than <code>uart.debug</code></li><li>Supports optional AutoNet join when enabled</li></ul> |
 
 Start with `radish.yaml` to prove Wi‑Fi, MQTT, and raw capture. It is all that is necessary, along with `mqtt_listener.py`, to get a sense for how messages are passed around the network and to extract live data. Move to `radish2.yaml` when you want the custom component / AutoNet paths in order to actually be able to join the network and send messages — see the [ESPHome Component guide](esphome-component.md).
 

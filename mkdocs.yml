@@ -6,6 +6,8 @@ repo_name: vesuvisian/radish
 
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
   features:
     - navigation.sections
     - navigation.footer
@@ -25,6 +27,7 @@ nav:
       - Python Decoder: python-decoder.md
       - ESPHome Component: esphome-component.md
   - Reference:
+      - Glossary: glossary.md
       - Component Internals: component-internals.md
       - Message Coverage Matrix: message_coverage_matrix.md
       - Protocol Specification Archive: spec/README.md

@@ -91,7 +91,6 @@ void RadishComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Local subnet: 0x%02X", identity.subnet);
   ESP_LOGCONFIG(TAG, "  Local node type: 0x%02X", identity.node_type);
   ESP_LOGCONFIG(TAG, "  AutoNet join enabled: %s", this->autonet_config_.enabled ? "yes" : "no");
-  ESP_LOGCONFIG(TAG, "  Publish structured events: %s", this->publish_structured_events_ ? "yes" : "no");
 }
 
 void RadishComponent::flush_buffer_(uint32_t now_ms) {

@@ -14,7 +14,6 @@ CONF_HEX_DELIMITER = "hex_delimiter"
 CONF_ENABLE_RAW_MQTT_FORWARDING = "enable_raw_mqtt_forwarding"
 CONF_LOCAL_NODE_TYPE = "local_node_type"
 CONF_SLOT_DELAY_MS = "slot_delay_ms"
-CONF_PUBLISH_STRUCTURED_EVENTS = "publish_structured_events"
 CONF_AUTONET_ENABLED = "autonet_enabled"
 CONF_AUTONET_DETERMINISTIC_SEED = "autonet_deterministic_seed"
 CONF_LOCAL_MAC_ADDRESS = "local_mac_address"
@@ -44,7 +43,6 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_ENABLE_RAW_MQTT_FORWARDING, default=True): cv.boolean,
             cv.Optional(CONF_LOCAL_NODE_TYPE, default=39): cv.int_range(min=0, max=255),
             cv.Optional(CONF_SLOT_DELAY_MS): validate_slot_delay_ms,
-            cv.Optional(CONF_PUBLISH_STRUCTURED_EVENTS, default=True): cv.boolean,
             cv.Optional(CONF_AUTONET_ENABLED, default=False): cv.boolean,
             cv.Optional(CONF_AUTONET_DETERMINISTIC_SEED): cv.int_range(min=0, max=0xFFFFFFFF),
             cv.Optional(CONF_LOCAL_MAC_ADDRESS): cv.string_strict,
@@ -73,7 +71,6 @@ async def to_code(config):
     cg.add(var.set_local_node_type(config[CONF_LOCAL_NODE_TYPE]))
     if CONF_SLOT_DELAY_MS in config:
         cg.add(var.set_slot_delay_ms(config[CONF_SLOT_DELAY_MS].total_milliseconds))
-    cg.add(var.set_publish_structured_events(config[CONF_PUBLISH_STRUCTURED_EVENTS]))
     cg.add(var.set_autonet_enabled(config[CONF_AUTONET_ENABLED]))
     if CONF_AUTONET_DETERMINISTIC_SEED in config:
         cg.add(var.set_autonet_deterministic_seed(config[CONF_AUTONET_DETERMINISTIC_SEED]))

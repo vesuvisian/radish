@@ -50,7 +50,7 @@ binary_sensor:
 # Configure the hardware UART for the Tail485
 uart:
   id: rs485_bus
-  tx_pin: GPIO2 # Swap GPIO pins or physical A/B wires if output is garbled
+  tx_pin: GPIO2 # Stock Tail485: TX→DI, RX←RO
   rx_pin: GPIO1
   baud_rate: 9600
 
@@ -61,7 +61,6 @@ radish:
   max_frame_bytes: 256
   hex_delimiter: " "
   enable_raw_mqtt_forwarding: true
-  publish_structured_events: true
   local_node_type: 39
   autonet_enabled: false
   autonet_join_switch:
