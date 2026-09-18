@@ -1,4 +1,5 @@
-name: Deploy MkDocs to GitHub Pages
+name: Deploy docs to GitHub Pages
+
 
 on:
   push:
@@ -27,11 +28,11 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install docs dependencies
-        run: pip install -r docs/requirements.txt
+      - name: Install Zensical
+        run: pip install zensical
 
       - name: Build site
-        run: mkdocs build
+        run: zensical build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

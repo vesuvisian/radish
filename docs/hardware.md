@@ -18,7 +18,7 @@ These M5Stack parts are inexpensive and compact. Other ESP32 boards and a generi
 
 ## Power
 
-Preferred: USB or a dedicated DC supply sized for the MCU + RS-485 module.
+Preferred: USB or a dedicated DC supply sized for the MCU + RS-485 module. The known-good setup uses a 3D-printed [USB-to-Dupont 5V adapter](https://www.printables.com/model/183535-usb-to-dupont-adapter-for-power-supply-5v-arduino-) and jumper wires to the 5V/GND pins on the Atom.
 
 Powering from the R/C (24 VAC) wires after converting to DC should be possible (as that is what thermostats do), but it is easy to introduce noise or ground-loop problems on the data bus. In particular, a 24T1812 24 VAC → 12 VDC converter caused ClimateTalk communication faults in testing — treat that module (and similar cheap VAC→DC bricks on R/C) as risky until you have verified bus health with a separate supply first.
 

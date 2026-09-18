@@ -25,8 +25,9 @@ Source for the site lives under [`docs/`](docs/). Start with [`docs/index.md`](d
 To view and edit the docs locally, run:
 
 ```bash
-pip install -r docs/requirements.txt
-mkdocs serve --livereload
+pip install zensical
+zensical serve
 ```
 
 Then open the provided URL (usually `http://127.0.0.1:8000/radish`).
+

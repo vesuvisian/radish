@@ -91,31 +91,95 @@ def on_disconnect(client, userdata, flags, reason_code, properties):
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Disconnected from MQTT broker")
 
 
+def render_raw_frames(
+    raw_data: bytes,
+    *,
+    exclude_dataflow: bool = False,
+    message_types: set[int] | None = None,
+    dedupe_repeated: bool = False,
+    last_dedupe_key: tuple[int, int, int, int, bytes] | None = None,
+) -> tuple[list[str], list[str], tuple[int, int, int, int, bytes] | None]:
+    """Parse and render frames without raising on corrupt payloads.
+
+    Returns (output_blocks, warnings, updated_dedupe_key).
+    """
+    frames, warnings = parse_frames(raw_data, validate_checksum=False)
+    outputs: list[str] = []
+    dedupe_key = last_dedupe_key
+
+    for index, frame in enumerate(frames):
+        if exclude_dataflow and (frame.packet_number & 0x80):
+            continue
+
+        if message_types and frame.message_type not in message_types:
+            continue
+
+        if dedupe_repeated:
+            next_key = make_dedupe_key(frame)
+            if dedupe_key == next_key:
+                continue
+            dedupe_key = next_key
+
+        try:
+            outputs.append(str(frame))
+        except Exception as exc:
+            preview = frame.payload[:32].hex(":")
+            if len(frame.payload) > 32:
+                preview += ":..."
+            outputs.append(
+                f"To: {frame.destination_address}\n"
+                f"From: {frame.source_address}\n"
+                f"Subnet: {frame.subnet}\n"
+                f"Send Method: {frame.send_method}\n"
+                f"Send Parameters: {frame.send_parameters:#06x}\n"
+                f"Source Node Type: {frame.source_node_type}\n"
+                f"Message Type: {frame.message_type:#04x}\n"
+                f"Packet Number: {frame.packet_number}\n"
+                f"Packet Length: {len(frame.payload)}\n"
+                f"Payload:\n"
+                f"  <render failed: {type(exc).__name__}: {exc}>\n"
+                f"  raw: {preview or '(empty)'}\n"
+                f"Checksum: {frame.checksum:#06x}"
+            )
+            warnings.append(
+                f"Failed to fully render frame {index} "
+                f"(type=0x{frame.message_type:02x}, "
+                f"from={frame.source_address}, to={frame.destination_address}, "
+                f"len={len(frame.payload)}): {type(exc).__name__}: {exc}"
+            )
+
+    return outputs, warnings, dedupe_key
+
+
 def on_message(client, userdata, msg):
     """Callback for when a message is received"""
     timestamp = datetime.now().strftime("%H:%M:%S")
     try:
         raw_data = decode_hex_payload(msg.payload)
-        frames, warnings = parse_frames(raw_data, validate_checksum=False)
-    except ValueError as exc:
-        print(f"[{timestamp}] {msg.topic}: payload decode error: {exc}")
+        outputs, warnings, dedupe_key = render_raw_frames(
+            raw_data,
+            exclude_dataflow=bool(userdata.get("exclude_dataflow")),
+            message_types=userdata.get("message_types"),
+            dedupe_repeated=bool(userdata.get("dedupe_repeated")),
+            last_dedupe_key=userdata.get("last_dedupe_key"),
+        )
+    except Exception as exc:
+        preview = msg.payload[:64]
+        try:
+            preview_text = preview.decode("ascii", errors="replace")
+        except Exception:
+            preview_text = repr(preview)
+        print(
+            f"[{timestamp}] {msg.topic}: payload decode error: "
+            f"{type(exc).__name__}: {exc} (preview={preview_text!r})"
+        )
         return
 
-    for frame in frames:
-        if userdata.get("exclude_dataflow") and (frame.packet_number & 0x80):
-            continue
+    if userdata.get("dedupe_repeated"):
+        userdata["last_dedupe_key"] = dedupe_key
 
-        allowed_message_types = userdata.get("message_types")
-        if allowed_message_types and frame.message_type not in allowed_message_types:
-            continue
-
-        if userdata.get("dedupe_repeated"):
-            dedupe_key = make_dedupe_key(frame)
-            if userdata.get("last_dedupe_key") == dedupe_key:
-                continue
-            userdata["last_dedupe_key"] = dedupe_key
-
-        print(f"[{timestamp}] {msg.topic}:\n{str(frame)}\n")
+    for rendered in outputs:
+        print(f"[{timestamp}] {msg.topic}:\n{rendered}\n")
 
     for warning in warnings:
         print(f"  warning: {warning}")
