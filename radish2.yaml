@@ -57,6 +57,7 @@ uart:
 radish:
   uart_id: rs485_bus
   mqtt_topic: radish/rs485/raw
+  app_query_mqtt_topic: radish/app_query
   publish_timeout_ms: 100ms
   max_frame_bytes: 256
   hex_delimiter: " "
@@ -83,12 +84,13 @@ logger:
 
 # Enable Home Assistant API
 api:
+  custom_services: true
   encryption:
     key: "" # Generated key
 
 ota:
   - platform: esphome
-    password: "" # Generated password
+    encryption:
 
 wifi:
   ssid: !secret wifi_ssid

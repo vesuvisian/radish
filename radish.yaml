@@ -80,7 +80,7 @@ api:
 
 ota:
   - platform: esphome
-    password: "" # Generated password
+    encryption:
 
 wifi:
   ssid: !secret wifi_ssid

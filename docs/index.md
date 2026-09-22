@@ -19,8 +19,9 @@ Work through these in order. You can stop after sniffing + decoding if you only 
 ## What this project includes
 
 - **ESPHome sniffing profile** (`radish.yaml`) — passive UART capture to MQTT
-- **ESPHome external component** (`radish2.yaml` + `components/radish`) — on-device frame handling, dataflow replies, optional AutoNet subordinate join
+- **ESPHome external component** (`radish2.yaml` + `components/radish`) — on-device frame handling, dataflow replies, optional AutoNet subordinate join, and originated read-only app queries (configuration / status / sensor / identification)
 - **Python decoder** (`mqtt_listener.py` + `radish` package) — live decode/inspect of MQTT hex frames
+- **Host query helper** (`request_ct_query.py`) — trigger an app query via Home Assistant and print the decoded MQTT response
 - **Spec archive** — ClimateTalk PDFs used as the protocol reference
 
 ## What works today
@@ -30,8 +31,9 @@ Work through these in order. You can stop after sniffing + decoding if you only 
 - Controller queue / dataflow behavior (R2R + Token Offer)
 - AutoNet client state machine (discovery, set-address, keepalive/relinquish)
 - Subordinate handlers for network node list and shared-data sector read/write (with persistence)
+- Optional Get Configuration (`0x01`), Get Status (`0x02`), Get Sensor Data (`0x07`), and Get Identification Data (`0x0E`) after join, triggered from Home Assistant
 
-Network join and subordinate responses are still experimental. Broad interrogation (actively querying status, sensors, menus, control) is not implemented yet. See the [ESPHome component guide](esphome-component.md) and [component internals](component-internals.md).
+Network join and subordinate responses are still experimental. Other interrogation (menus, control) is not implemented. See the [ESPHome component guide](esphome-component.md) and [component internals](component-internals.md).
 
 ## Documentation
 

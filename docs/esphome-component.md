@@ -56,10 +56,11 @@ Local address and subnet are assigned at runtime by the coordinator — they are
 - Subordinate handlers for:
     - `SetNetworkNodeList` (`0x14` / `0x94`)
     - `NetworkSharedDataSector` read/write (`0x7D` / `0xFD`) with persistence
+- Originated application queries after join: **Get Configuration** (`0x01`), **Get Status** (`0x02`), **Get Sensor Data** (`0x07`), and **Get Identification Data** (`0x0E`). See [Requesting application queries](#requesting-application-queries).
 
 **Not implemented (yet)**
 
-- Broad application interrogation (status, sensors, menus, control commands, etc. as an active querier)
+- Other application interrogation (menus, control commands, and further polls beyond the four above)
 - Custom responses for most other application message IDs (they are routed but unanswered)
 
 Treat network join as experimental: useful for learning AutoNet and holding a subordinate slot, not as a full thermostat replacement.
@@ -72,6 +73,7 @@ Stock `radish:` block from `radish2.yaml`:
 radish:
   uart_id: rs485_bus
   mqtt_topic: radish/rs485/raw
+  app_query_mqtt_topic: radish/app_query
   publish_timeout_ms: 100ms
   max_frame_bytes: 256
   hex_delimiter: " "
@@ -90,6 +92,7 @@ radish:
 | Option | Default | Notes |
 | --- | --- | --- |
 | `mqtt_topic` | `radish/rs485/raw` | Raw hex publish topic |
+| `app_query_mqtt_topic` | `radish/app_query` | Hex publish for a matching Get Configuration / Status / Sensor / Identification response |
 | `enable_raw_mqtt_forwarding` | `true` | Turn off to stop MQTT hex spam while still running the controller |
 | `hex_delimiter` | `" "` | Matches the Python listener’s spaced-hex expectation |
 | `publish_timeout_ms` | `100ms` | Flush UART buffer to the controller / MQTT |
@@ -114,6 +117,43 @@ radish:
 
 Keepalive is fixed by the CT-485 spec (not configurable): if an Address Confirmation Broadcast is missing for **120 s**, or Expected Node Position does not match, the subordinate must relinquish and wait to be re-addressed.
 
+Stock `radish2.yaml` also sets `custom_services: true` under `api:` so Home Assistant can call `get_app_query`. The component forces the matching compile defines when loaded, so a missing YAML flag does not break the build; keep the flag in YAML for clarity.
+
+## Requesting application queries
+
+After AutoNet join, Home Assistant can ask radish to enqueue a read-only application poll through one service: `esphome.<device_name>_get_app_query`. With `esphome.name: radish` that is `esphome.radish_get_app_query`.
+
+| `kind` (canonical) | Also accepted | Request / response | Label |
+| --- | --- | --- | --- |
+| `config` | `configuration` | `0x01` / `0x81` | Get Configuration |
+| `status` | — | `0x02` / `0x82` | Get Status |
+| `sensor` | `sensor_data` | `0x07` / `0x87` | Get Sensor Data |
+| `id` | `identification`, `ident` | `0x0E` / `0x8E` | Get Identification Data |
+
+`kind` matching is case-insensitive. `request_ct_query.py` uses the canonical names only.
+
+```yaml
+action: esphome.radish_get_app_query
+data:
+  kind: config   # or status, sensor, or id
+  node_type: 5   # heat pump; 3 is the air handler
+```
+
+Or from the repo root (reads `HA_TOKEN` / `HA_URL` / MQTT settings from `.env`; see `.env.example`):
+
+```bash
+python request_ct_query.py 5 --kind config
+python request_ct_query.py 3 --kind status
+python request_ct_query.py 5 --kind sensor
+python request_ct_query.py 5 --kind id
+```
+
+The script subscribes to `APP_QUERY_MQTT_TOPIC` (default `radish/app_query`), calls the HA service, waits for a matching response hex frame, parses it with the Python decoder, prints it, and exits. Use `--timeout` / `APP_QUERY_TIMEOUT` if the bus is slow.
+
+The HA call does not write to the bus immediately. Radish builds the same routed request the thermostat uses (destination `255`, send method 2, targeted node type in the low byte of the send parameters, empty payload) and waits for the next Token Offer / R2R turn. When a matching non-dataflow response arrives for the pending node type, the full frame hex is published on `app_query_mqtt_topic`. The call is ignored if radish is not addressed, if `kind` is unknown, if `node_type` is outside `1..255`, or if the transmit queue is full.
+
+This is a second querier on a live bus. The stock identity is still a temperature sensor (node type 39), not a thermostat. Prefer a short join window, and do not send control commands this way.
+
 ## Safety notes
 
 - Prefer sniffing-only until raw traffic is understood.
@@ -126,6 +166,6 @@ Keepalive is fixed by the CT-485 spec (not configurable): if an Address Confirma
 ## Related docs
 
 - [Software Setup](software.md) — flash `radish2.yaml`, secrets, OTA
-- [Python Decoder](python-decoder.md) — watch join traffic live
+- [Python Decoder](python-decoder.md) — watch join traffic live; `request_ct_query.py` for app polls
 - [Protocol Specification Archive](spec/README.md) — CT-485 networking / AutoNet PDFs
-- [Component Internals](component-internals.md) — state machine, queue rules, spec traceability
+- [Component Internals](component-internals.md) — state machine, queue rules, app-query path, spec traceability

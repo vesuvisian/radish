@@ -117,6 +117,114 @@ class TestFrameParsing(unittest.TestCase):
         self.assertIn("Message Type: 0x00 (Request to Receive (R2R))", rendered)
         self.assertIn("Coordinator MAC address: 00:00:09:19:02:0a:40:04", rendered)
 
+    def test_get_configuration_request_layout(self):
+        # Matches CtController::request_configuration: empty 0x01, send method 2,
+        # send parameters low byte = targeted node type (air handler = 3).
+        frame = Frame(
+            destination_address=0xFF,
+            source_address=0x10,
+            subnet=0x03,
+            send_method=0x02,
+            send_parameters=0x0003,
+            source_node_type=39,
+            message_type=0x01,
+            packet_number=0x00,
+            payload=b"",
+        )
+        raw = frame.to_bytes()
+        parsed = Frame.from_bytes(raw, validate_checksum=True)
+
+        self.assertEqual(parsed.message_type, 0x01)
+        self.assertEqual(parsed.send_method, 0x02)
+        self.assertEqual(parsed.send_parameters, 0x0003)
+        self.assertEqual(parsed.payload, b"")
+        self.assertEqual(raw[3], 0x02)
+        self.assertEqual(raw[4:6], bytes((0x03, 0x00)))
+        self.assertEqual(raw[7], 0x01)
+        self.assertEqual(raw[9], 0x00)
+
+    def test_get_status_request_layout(self):
+        # Matches CtController::request_status: empty 0x02, send method 2,
+        # send parameters low byte = targeted node type (heat pump = 5).
+        frame = Frame(
+            destination_address=0xFF,
+            source_address=0x10,
+            subnet=0x03,
+            send_method=0x02,
+            send_parameters=0x0005,
+            source_node_type=39,
+            message_type=0x02,
+            packet_number=0x00,
+            payload=b"",
+        )
+        raw = frame.to_bytes()
+        parsed = Frame.from_bytes(raw, validate_checksum=True)
+
+        self.assertEqual(parsed.message_type, 0x02)
+        self.assertEqual(parsed.send_method, 0x02)
+        self.assertEqual(parsed.send_parameters, 0x0005)
+        self.assertEqual(parsed.payload, b"")
+        self.assertEqual(raw[3], 0x02)
+        self.assertEqual(raw[4:6], bytes((0x05, 0x00)))
+        self.assertEqual(raw[7], 0x02)
+        self.assertEqual(raw[9], 0x00)
+
+    def test_get_sensor_data_request_layout(self):
+        # Matches CtController::request_sensor_data: empty 0x07, send method 2,
+        # send parameters low byte = targeted node type (heat pump = 5).
+        frame = Frame(
+            destination_address=0xFF,
+            source_address=0x10,
+            subnet=0x03,
+            send_method=0x02,
+            send_parameters=0x0005,
+            source_node_type=39,
+            message_type=0x07,
+            packet_number=0x00,
+            payload=b"",
+        )
+        raw = frame.to_bytes()
+        parsed = Frame.from_bytes(raw, validate_checksum=True)
+
+        self.assertEqual(parsed.destination_address, 0xFF)
+        self.assertEqual(parsed.packet_number, 0x00)
+        self.assertEqual(parsed.payload, b"")
+        self.assertEqual(parsed.message_type, 0x07)
+        self.assertEqual(parsed.send_method, 0x02)
+        self.assertEqual(parsed.send_parameters, 0x0005)
+        self.assertEqual(raw[0], 0xFF)
+        self.assertEqual(raw[3], 0x02)
+        self.assertEqual(raw[4:6], bytes((0x05, 0x00)))
+        self.assertEqual(raw[7], 0x07)
+        self.assertEqual(raw[8], 0x00)
+        self.assertEqual(raw[9], 0x00)
+
+    def test_get_identification_request_layout(self):
+        # Matches CtController::request_identification: empty 0x0E, send method 2,
+        # send parameters low byte = targeted node type (heat pump = 5).
+        frame = Frame(
+            destination_address=0xFF,
+            source_address=0x10,
+            subnet=0x03,
+            send_method=0x02,
+            send_parameters=0x0005,
+            source_node_type=39,
+            message_type=0x0E,
+            packet_number=0x00,
+            payload=b"",
+        )
+        raw = frame.to_bytes()
+        parsed = Frame.from_bytes(raw, validate_checksum=True)
+
+        self.assertEqual(parsed.message_type, 0x0E)
+        self.assertEqual(parsed.send_method, 0x02)
+        self.assertEqual(parsed.send_parameters, 0x0005)
+        self.assertEqual(parsed.payload, b"")
+        self.assertEqual(raw[3], 0x02)
+        self.assertEqual(raw[4:6], bytes((0x05, 0x00)))
+        self.assertEqual(raw[7], 0x0E)
+        self.assertEqual(raw[9], 0x00)
+
 
 class TestAdditionalMessageTypes(unittest.TestCase):
     def test_unknown_message_type_uses_base_message(self):

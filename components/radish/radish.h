@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include "ct_controller.h"
+#include "esphome/components/api/custom_api_device.h"
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
@@ -23,13 +25,17 @@ class RadishAutoNetJoinSwitch : public switch_::Switch {
   RadishComponent *parent_{nullptr};
 };
 
-class RadishComponent : public Component, public uart::UARTDevice {
+class RadishComponent : public Component, public uart::UARTDevice, public api::CustomAPIDevice {
  public:
   void setup() override;
   void loop() override;
   void dump_config() override;
+  void on_get_app_query_(std::string kind, int32_t node_type);
 
   void set_mqtt_topic(const std::string &mqtt_topic) { this->mqtt_topic_ = mqtt_topic; }
+  void set_app_query_mqtt_topic(const std::string &app_query_mqtt_topic) {
+    this->app_query_mqtt_topic_ = app_query_mqtt_topic;
+  }
   void set_publish_timeout_ms(uint32_t publish_timeout_ms) { this->publish_timeout_ms_ = publish_timeout_ms; }
   void set_max_frame_bytes(size_t max_frame_bytes) { this->max_frame_bytes_ = max_frame_bytes; }
   void set_hex_delimiter(const std::string &hex_delimiter) { this->hex_delimiter_ = hex_delimiter; }
@@ -82,11 +88,14 @@ class RadishComponent : public Component, public uart::UARTDevice {
   void send_controller_tx_(const ControllerTxAttempt &attempt);
   std::string format_hex_payload_(const std::vector<uint8_t> &data) const;
   bool publish_raw_payload_(const std::vector<uint8_t> &data) const;
+  bool publish_app_query_payload_(const std::vector<uint8_t> &data) const;
+  void maybe_publish_app_query_response_(const ControllerStepResult &result);
   std::vector<uint8_t> parse_or_generate_local_mac_() const;
   void publish_autonet_join_switch_state_();
 
   std::vector<uint8_t> rx_buffer_;
   std::string mqtt_topic_{"radish/rs485/raw"};
+  std::string app_query_mqtt_topic_{"radish/app_query"};
   std::string hex_delimiter_{" "};
   uint32_t publish_timeout_ms_{100};
   uint32_t last_rx_ms_{0};

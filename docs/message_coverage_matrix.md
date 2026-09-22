@@ -44,12 +44,14 @@ For these tables, the IDs column presents the request and response IDs, respecti
 Notes:
 
 - <sup>1</sup> Response parsed as raw DB ID datagrams by default. The following Configuration MDI values are further parsed by node type and DB ID (Command Reference Section 7.3):
+    - Thermostat: `0x00` (no Section 7.3 definition; some devices return an empty record)
     - Furnace: `0x00`, `0x01`
     - Air Handler: `0x00`, `0x01`, `0x02` seen in logs and not yet decoded
     - Air Conditioner: `0x00`, `0x01`, `0x02`
     - Heat Pump: `0x00`, `0x01`, `0x02`
 
 - <sup>2</sup> Response parsed as raw DB ID datagrams by default. The following Status MDI semantic decodings are further parsed by node type and DB ID (Command Reference Section 7.4):
+    - Thermostat: `0x00` (Table 160; some devices return an empty record)
     - Air Handler: `0x00`, `0x01` seen in logs and not yet decoded
     - Heat Pump: `0x00`
 

@@ -27,6 +27,38 @@ void RadishAutoNetJoinSwitch::write_state(bool state) {
   this->publish_state(state);
 }
 
+void RadishComponent::on_get_app_query_(std::string kind, int32_t node_type) {
+  std::string normalized;
+  normalized.reserve(kind.size());
+  for (char ch : kind) {
+    normalized.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(ch))));
+  }
+
+  if (node_type < 1 || node_type > 255) {
+    ESP_LOGW(TAG, "App query rejected: node_type %" PRId32 " is outside 1..255", node_type);
+    return;
+  }
+
+  if (normalized == "config" || normalized == "configuration") {
+    this->controller_.request_configuration(static_cast<uint8_t>(node_type));
+    return;
+  }
+  if (normalized == "status") {
+    this->controller_.request_status(static_cast<uint8_t>(node_type));
+    return;
+  }
+  if (normalized == "sensor" || normalized == "sensor_data") {
+    this->controller_.request_sensor_data(static_cast<uint8_t>(node_type));
+    return;
+  }
+  if (normalized == "id" || normalized == "identification" || normalized == "ident") {
+    this->controller_.request_identification(static_cast<uint8_t>(node_type));
+    return;
+  }
+
+  ESP_LOGW(TAG, "App query rejected: unknown kind '%s' (use config, status, sensor, or id)", kind.c_str());
+}
+
 void RadishComponent::setup() {
   this->controller_.setup();
   this->rx_buffer_.reserve(this->max_frame_bytes_);
@@ -45,6 +77,7 @@ void RadishComponent::setup() {
   this->controller_.set_identity(identity);
   this->controller_.set_autonet_config(this->autonet_config_);
   this->publish_autonet_join_switch_state_();
+  this->register_service(&RadishComponent::on_get_app_query_, "get_app_query", {"kind", "node_type"});
 }
 
 void RadishComponent::loop() {
@@ -83,6 +116,7 @@ void RadishComponent::loop() {
 void RadishComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Radish Component:");
   ESP_LOGCONFIG(TAG, "  MQTT topic: %s", this->mqtt_topic_.c_str());
+  ESP_LOGCONFIG(TAG, "  App query MQTT topic: %s", this->app_query_mqtt_topic_.c_str());
   ESP_LOGCONFIG(TAG, "  Publish timeout: %" PRIu32 " ms", this->publish_timeout_ms_);
   ESP_LOGCONFIG(TAG, "  Max frame bytes: %u", static_cast<unsigned>(this->max_frame_bytes_));
   ESP_LOGCONFIG(TAG, "  Hex delimiter: '%s'", this->hex_delimiter_.c_str());
@@ -102,6 +136,7 @@ void RadishComponent::flush_buffer_(uint32_t now_ms) {
   if (result.should_publish_raw) {
     this->publish_raw_payload_(this->rx_buffer_);
   }
+  this->maybe_publish_app_query_response_(result);
   for (const ControllerTxAttempt &attempt : result.tx_attempts) {
     this->send_controller_tx_(attempt);
   }
@@ -131,6 +166,33 @@ bool RadishComponent::publish_raw_payload_(const std::vector<uint8_t> &data) con
     ESP_LOGW(TAG, "Failed to publish %u byte(s) to MQTT", static_cast<unsigned>(data.size()));
   }
   return ok;
+}
+
+bool RadishComponent::publish_app_query_payload_(const std::vector<uint8_t> &data) const {
+  auto *mqtt_client = mqtt::global_mqtt_client;
+  if (mqtt_client == nullptr || !mqtt_client->is_connected()) {
+    ESP_LOGW(TAG, "MQTT unavailable, dropping app query response (%u byte(s))",
+             static_cast<unsigned>(data.size()));
+    return false;
+  }
+  const std::string payload = this->format_hex_payload_(data);
+  const bool ok = mqtt_client->publish(this->app_query_mqtt_topic_, payload);
+  if (!ok) {
+    ESP_LOGW(TAG, "Failed to publish app query response to %s", this->app_query_mqtt_topic_.c_str());
+  } else {
+    ESP_LOGI(TAG, "Published app query response hex to %s", this->app_query_mqtt_topic_.c_str());
+  }
+  return ok;
+}
+
+void RadishComponent::maybe_publish_app_query_response_(const ControllerStepResult &result) {
+  if (!result.app_query_response_bytes.has_value()) {
+    return;
+  }
+  if (result.app_query_kind == AppQueryKind::NONE) {
+    return;
+  }
+  this->publish_app_query_payload_(result.app_query_response_bytes.value());
 }
 
 std::vector<uint8_t> RadishComponent::parse_or_generate_local_mac_() const {

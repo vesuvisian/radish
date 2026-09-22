@@ -8,6 +8,14 @@ namespace esphome {
 namespace radish {
 
 constexpr uint8_t CT_MSG_TYPE_R2R = 0x00;
+constexpr uint8_t CT_MSG_TYPE_GET_CONFIGURATION_REQUEST = 0x01;
+constexpr uint8_t CT_MSG_TYPE_GET_STATUS_REQUEST = 0x02;
+constexpr uint8_t CT_MSG_TYPE_GET_SENSOR_DATA_REQUEST = 0x07;
+constexpr uint8_t CT_MSG_TYPE_GET_IDENTIFICATION_DATA_REQUEST = 0x0E;
+constexpr uint8_t CT_MSG_TYPE_GET_CONFIGURATION_RESPONSE = 0x81;
+constexpr uint8_t CT_MSG_TYPE_GET_STATUS_RESPONSE = 0x82;
+constexpr uint8_t CT_MSG_TYPE_GET_SENSOR_DATA_RESPONSE = 0x87;
+constexpr uint8_t CT_MSG_TYPE_GET_IDENTIFICATION_DATA_RESPONSE = 0x8E;
 constexpr uint8_t CT_MSG_TYPE_TOKEN_OFFER = 0x77;
 constexpr uint8_t CT_MSG_TYPE_TOKEN_OFFER_RESPONSE = 0xF7;
 constexpr uint8_t CT_MSG_TYPE_ADDRESS_CONFIRMATION_PUSH = 0x76;
@@ -27,8 +35,10 @@ constexpr uint8_t CT_R2R_CODE_REQUEST = 0x00;
 constexpr uint8_t CT_R2R_CODE_ACK = 0x06;
 
 constexpr uint8_t CT_ADDRESS_BROADCAST = 0x00;
+constexpr uint8_t CT_ADDRESS_COORDINATOR = 0xFF;
 constexpr uint8_t CT_SUBNET_BROADCAST = 0x00;
 constexpr uint8_t CT_SUBNET_V2 = 0x03;
+constexpr uint8_t CT_SEND_METHOD_PRIORITY_NODE_TYPE = 2;
 
 constexpr uint8_t CT_PACKET_FLAG_DATAFLOW = 0x80;
 constexpr uint8_t CT_PACKET_FLAG_VERSION = 0x20;

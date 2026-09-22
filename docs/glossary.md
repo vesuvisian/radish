@@ -10,6 +10,9 @@ The two-wire differential RS-485 pair used by CT-485. Equipment often labels the
 **Address Confirmation**  
 Coordinator messages that push or confirm the network node list (who is on the bus and at which node types). Subordinates answer with a matching response. Missing or mismatched confirmations drive AutoNet keepalive / relinquish behavior.
 
+**App query**  
+A read-only CT-CIM poll Radish originates after AutoNet join: Get Configuration (`0x01`), Get Status (`0x02`), Get Sensor Data (`0x07`), or Get Identification Data (`0x0E`). Triggered from Home Assistant via `get_app_query`; matching response hex is published on `app_query_mqtt_topic`. See [Requesting application queries](esphome-component.md#requesting-application-queries).
+
 **Air Handler**  
 Indoor blower / coil equipment (node type `3` in CT-485). Often co-located with the network coordinator function on Daikin / ComfortNet systems.
 
@@ -87,7 +90,7 @@ Dataflow handshake message that helps a subordinate get a turn to send. The ESPH
 Passive sniffing profile: `uart.debug` RX → MQTT hex. Does not join the network.
 
 **`radish2.yaml`**  
-Profile that loads the local `radish` ESPHome component: on-device framing, dataflow replies, optional AutoNet.
+Profile that loads the local `radish` ESPHome component: on-device framing, dataflow replies, optional AutoNet, and originated app queries (configuration / status / sensor / identification).
 
 **Relinquish**  
 AutoNet client drops its assigned address/subnet (for example after keepalive failure or AutoNet turned off) and waits to be rediscovered.

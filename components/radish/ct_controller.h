@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <deque>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,21 @@
 namespace esphome {
 namespace radish {
 
+enum class AppQueryKind : uint8_t {
+  NONE = 0,
+  CONFIGURATION = 1,
+  STATUS = 2,
+  SENSOR_DATA = 3,
+  IDENTIFICATION = 4,
+};
+
+struct PendingAppQuery {
+  AppQueryKind kind{AppQueryKind::NONE};
+  uint8_t request_message_type{0};
+  uint8_t response_message_type{0};
+  uint8_t target_node_type{0};
+};
+
 struct ControllerTxAttempt {
   TxSource source{TxSource::CONTROLLER};
   std::vector<uint8_t> bytes{};
@@ -20,6 +36,9 @@ struct ControllerTxAttempt {
 struct ControllerStepResult {
   std::vector<ControllerTxAttempt> tx_attempts{};
   bool should_publish_raw{false};
+  // Full encoded frame bytes for an application query response matched to a pending request.
+  std::optional<std::vector<uint8_t>> app_query_response_bytes{};
+  AppQueryKind app_query_kind{AppQueryKind::NONE};
 };
 
 class CtController {
@@ -33,17 +52,24 @@ class CtController {
   ControllerStepResult on_raw_chunk(const std::vector<uint8_t> &raw_bytes, uint32_t now_ms);
   ControllerStepResult tick(uint32_t now_ms);
   bool enqueue_outbound(const QueuedTx &queued_tx);
+  bool request_configuration(uint8_t target_node_type);
+  bool request_status(uint8_t target_node_type);
+  bool request_sensor_data(uint8_t target_node_type);
+  bool request_identification(uint8_t target_node_type);
 
   const ControllerCounters &counters() const { return this->counters_; }
   const ControllerIdentity &identity() const { return this->identity_; }
 
  private:
+  bool request_app_query_(AppQueryKind kind, uint8_t request_message_type, uint8_t response_message_type,
+                          uint8_t target_node_type);
   ControllerStepResult handle_frame_(const CtFrame &frame, uint32_t now_ms);
   void append_service_outputs_(const ServiceOutput &service_output, ControllerStepResult *out);
   void maybe_reset_dataflow_cycle_(const CtFrame &frame);
   void clear_pending_tx_state_();
   bool is_for_local_node_(const CtFrame &frame) const;
   bool is_subnet3_token_offer_(const CtFrame &frame) const;
+  bool is_pending_app_query_response_(const CtFrame &frame) const;
 
   QueuedTx make_r2r_ack_(const CtFrame &r2r) const;
   QueuedTx make_non_dataflow_ack_(const CtFrame &frame) const;
@@ -70,6 +96,7 @@ class CtController {
   uint64_t pending_token_epoch_{0};
   CtFrame pending_token_offer_frame_{};
   AutoNetConfig autonet_config_{};
+  std::optional<PendingAppQuery> pending_app_query_{};
 };
 
 }  // namespace radish

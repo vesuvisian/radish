@@ -39,7 +39,15 @@ CtController::tick() advances AutoNet slot delays, keepalive, and pending Token 
 ## Not implemented (yet)
 
 - Custom responses for most application message IDs (routed to `SubordinateService`, then ignored)
-- Active interrogation (device does not originate status/sensor/menu/control queries)
+- Active interrogation other than Get Configuration (`0x01`), Get Status (`0x02`), Get Sensor Data (`0x07`), and Get Identification Data (`0x0E`)
+
+## Application queries (configuration / status / sensor / identification)
+
+`CtController::request_configuration` / `request_status` / `request_sensor_data` / `request_identification` enqueue one empty application request (`0x01`, `0x02`, `0x07`, or `0x0E`) when the local address is non-zero. They refuse node type `0` and a full queue. The frame is addressed to the coordinator (`255`) with send method `2` and send parameters equal to the targeted node type (source index 0). It is not transmitted until the existing Token Offer / R2R path drains the queue. A successful enqueue records `pending_app_query_` (kind, request/response message types, target node type). Only one pending query is kept at a time.
+
+When a locally addressed, non-dataflow response arrives with send method `2`, the expected response message type (`0x81`, `0x82`, `0x87`, or `0x8E`), and send-parameters low byte equal to the pending node type, the controller encodes the frame into `ControllerStepResult::app_query_response_bytes` (with `app_query_kind`) and clears the pending flag. `RadishComponent` publishes that hex on the single `app_query_mqtt_topic` (default `radish/app_query`). Relinquish / AutoNet disable also clears the pending flag.
+
+`RadishComponent` registers one Home Assistant service, `get_app_query`, with string `kind` and `node_type` (`int32_t`, validated to `1..255`) via `api::CustomAPIDevice`. Canonical `kind` values are `config`, `status`, `sensor`, and `id` (case-insensitive; ordered by request message type). Aliases: `configuration` → config; `sensor_data` → sensor; `identification` / `ident` → id. The component's codegen sets `USE_API_USER_DEFINED_ACTIONS` and `USE_API_CUSTOM_SERVICES`; `custom_services: true` on the `api:` block remains the documented YAML counterpart. Host tooling: `request_ct_query.py [--kind config|status|sensor|id]` awaits the MQTT hex, parses with `Frame`, and exits.
 
 ## Runtime behavior
 

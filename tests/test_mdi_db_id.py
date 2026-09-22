@@ -79,6 +79,19 @@ class TestConfigAndStatusMdiFormatting(unittest.TestCase):
         self.assertIn("Dehumidification Capable: Yes", output)
         self.assertIn("Nominal Capacity: 2 tons", output)
 
+    def test_configuration_response_accepts_empty_thermostat_db_00(self):
+        # Live Daikin thermostat Get Configuration Response payload: one empty record.
+        msg = GetConfigurationResponse(
+            bytes.fromhex("00 00"),
+            parse_context={"source_node_type": 1},
+        )
+        output = msg.pretty_format()
+
+        self.assertIn("Configuration: Thermostat Configuration Data", output)
+        self.assertIn("Empty record — device published no configuration data", output)
+        self.assertNotIn("Decode Warning", output)
+        self.assertNotIn("No Configuration MDI definition", output)
+
     def test_configuration_response_decodes_heat_pump_db_01_trim_data(self):
         msg = GetConfigurationResponse(
             bytes.fromhex("01 02 f6 0a"),
@@ -290,6 +303,60 @@ class TestConfigAndStatusMdiFormatting(unittest.TestCase):
         self.assertIn("Fan Requested Rate/Slew: 16s", output)
         self.assertIn("Fan Requested Delay: 18s", output)
         self.assertIn("Current Dehumidification Actual Status: 10.0%", output)
+
+    def test_status_response_decodes_thermostat_db_00_table_160_fields(self):
+        # Display Temperature 70.5°F: whole=70, frac=8/16 -> LE 0x0468
+        msg = GetStatusResponse(
+            bytes.fromhex(
+                "00 1F "
+                "00 01 03 00 28 32 48 68 04 46 4A "
+                "00 0E 1E 00 01 FF FF "
+                "0A 14 28 00 32 00 00 "
+                "1A 08 15 2D 00 00"
+            ),
+            parse_context={"source_node_type": 1},
+        )
+        output = msg.pretty_format()
+
+        self.assertIn("Status: Thermostat Status Data (Table 160)", output)
+        self.assertIn("Critical Fault: 0", output)
+        self.assertIn("Minor Fault: 1", output)
+        self.assertIn("System Active Control Status: Heat State (3)", output)
+        self.assertIn("Curtailment Active Control Status: No Curtailment (0)", output)
+        self.assertIn("Humidification Setpoint: 40% RH", output)
+        self.assertIn("De-humidification Setpoint: 50% RH", output)
+        self.assertIn("Working Set Point Temperature: 72°F", output)
+        self.assertIn("Display Temperature: 70.5°F", output)
+        self.assertIn("Heat Set Point Temperature: 70°F", output)
+        self.assertIn("Cool Set Point Temperature: 74°F", output)
+        self.assertIn("Current Day of Week: Monday (0)", output)
+        self.assertIn("Current Time - Hours: 14h", output)
+        self.assertIn("Current Time - Min: 30 min", output)
+        self.assertIn("Permanent Hold: Enabled", output)
+        self.assertIn("Timed Temporary Hold Remaining: Disabled or Unused", output)
+        self.assertIn("Dehumidification Requested Demand: 5.0%", output)
+        self.assertIn("Humidification Requested Demand: 10.0%", output)
+        self.assertIn("Heat Requested Demand: 20.0%", output)
+        self.assertIn("Fan Requested Demand: 25.0%", output)
+        self.assertIn("Current Time - Year: 2026", output)
+        self.assertIn("Current Time - Month: September (8)", output)
+        self.assertIn("Current Time - Date: 21", output)
+        self.assertIn("Relative Humidity Reading: 45% RH", output)
+        self.assertIn("Away Mode Status: Away Mode Disabled or Unavailable (0)", output)
+        self.assertIn("Fan Mode Setting: Auto (0)", output)
+
+    def test_status_response_accepts_empty_thermostat_db_00(self):
+        # Live Daikin thermostat Get Status Response payload: one empty record.
+        msg = GetStatusResponse(
+            bytes.fromhex("00 00"),
+            parse_context={"source_node_type": 1},
+        )
+        output = msg.pretty_format()
+
+        self.assertIn("Status: Thermostat Status Data (Table 160)", output)
+        self.assertIn("Empty record — device published no status data", output)
+        self.assertNotIn("Decode Warning", output)
+        self.assertNotIn("length mismatch", output)
 
     def test_sensor_response_formats_records(self):
         msg = GetSensorDataResponse(bytes.fromhex("39 02 12 34"))

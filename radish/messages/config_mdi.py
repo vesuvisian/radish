@@ -216,6 +216,20 @@ def decode_config_mdi_record(
     if source_node_type is None:
         return None, "Cannot decode configuration DB IDs without source node type context"
 
+    if source_node_type == 1 and db_id == 0x00 and len(value) == 0:
+        # Command Reference Section 7.3 defines no thermostat Configuration MDI.
+        # Some devices still answer with an empty record (length 0).
+        return {
+            "record_name": "Thermostat Configuration Data",
+            "node_type": source_node_type,
+            "node_type_name": NODE_TYPE_MAP[source_node_type],
+            "db_id": db_id,
+            "raw_value": value,
+            "decoded_fields": {
+                "Note": "Empty record — device published no configuration data",
+            },
+        }, None
+
     if source_node_type == 5 and db_id == 0x00:
         if len(value) != 5:
             return (

@@ -43,8 +43,12 @@ cp .env.example .env
 | `MQTT_MESSAGE_TYPES` | Optional comma-separated allowlist, hex or decimal (e.g. `0x87,0xC1`) |
 | `MQTT_EXCLUDE_DATAFLOW` | `true` to skip dataflow packets (packet number bit 7 set), such as ACKs |
 | `MQTT_DEDUPE_REPEATED` | `true` to suppress immediately adjacent repeats of the same logical message (common when frames are relayed via the coordinator) |
+| `HA_TOKEN` / `HA_URL` | Used by `request_ct_query.py` to call the ESPHome `get_app_query` service |
+| `HA_APP_QUERY_SERVICE` | Optional service path override (default `esphome/radish_get_app_query`) |
+| `APP_QUERY_MQTT_TOPIC` | Topic where matching app-query response hex is published (default `radish/app_query`) |
+| `APP_QUERY_TIMEOUT` | Seconds to wait for that response (default `60`) |
 
-Boolean env values accept `true`/`false`, `yes`/`no`, `on`/`off`, or `1`/`0`.
+Boolean env values accept `true`/`false`, `yes`/`no`, `on`/`off`, or `1`/`0`. The `HA_*` / `APP_QUERY_*` variables are only needed for active queries after AutoNet join; see [Requesting application queries](esphome-component.md#requesting-application-queries).
 
 ## Run the listener
 
@@ -123,6 +127,7 @@ If nothing prints, confirm the ESP is online, the topic matches what the device 
 | Path | Role |
 | --- | --- |
 | `mqtt_listener.py` | MQTT client entrypoint |
+| `request_ct_query.py` | HA-triggered app query helper (config / status / sensor / id) |
 | `radish/frame.py` | CT-485 frame parse/encode and checksum |
 | `radish/messages/` | Registered message classes (`ct_485`, `ct_cim`, MDI helpers) |
 | `radish/messages/registry.py` | Maps message type IDs → decoder classes |
@@ -130,6 +135,19 @@ If nothing prints, confirm the ESP is online, the topic matches what the device 
 | `tests/` | Unit tests for frames, messages, and related contracts |
 
 Importing `radish.messages` registers known types as a side effect. Unknown message IDs still decode as a generic `Message` with a raw payload.
+
+## Request a configuration / status / sensor / identification poll
+
+With AutoNet joined (see [ESPHome Component](esphome-component.md)), `request_ct_query.py` calls Home Assistant’s `esphome.radish_get_app_query` action, waits for the matching hex on `APP_QUERY_MQTT_TOPIC`, parses it with the same `Frame` decoder, prints it, and exits:
+
+```bash
+python request_ct_query.py 5 --kind config
+python request_ct_query.py 3 --kind status
+python request_ct_query.py 5 --kind sensor
+python request_ct_query.py 5 --kind id
+```
+
+Requires `HA_TOKEN` in `.env`. Prefer short join windows; this is a second querier on a live bus.
 
 ## Tests
 
@@ -140,5 +158,6 @@ python -m unittest discover -s tests -v
 ## Related docs
 
 - [Message Coverage Matrix](message_coverage_matrix.md) — which IDs are fully / partially parsed
+- [ESPHome Component](esphome-component.md#requesting-application-queries) — HA service and query kinds
 - [Protocol Specification Archive](spec/README.md) — ClimateTalk PDFs used as the decode reference
 - [Software Setup](software.md) — get frames onto MQTT from the ESP32

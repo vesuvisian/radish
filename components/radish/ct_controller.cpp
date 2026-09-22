@@ -23,6 +23,7 @@ void CtController::set_autonet_config(const AutoNetConfig &config) {
     ServiceOutput relinquish = this->autonet_client_.force_unaddressed();
     if (relinquish.clear_assignment) {
       this->clear_pending_tx_state_();
+      this->pending_app_query_.reset();
       this->identity_.address = 0;
       this->identity_.subnet = CT_SUBNET_V2;
       ESP_LOGI(TAG, "Local identity assignment cleared (addr=0x00 subnet=0x%02X)", CT_SUBNET_V2);
@@ -47,6 +48,10 @@ ControllerStepResult CtController::on_raw_chunk(const std::vector<uint8_t> &raw_
     this->maybe_reset_dataflow_cycle_(frame);
     ControllerStepResult per_frame = this->handle_frame_(frame, now_ms);
     out.tx_attempts.insert(out.tx_attempts.end(), per_frame.tx_attempts.begin(), per_frame.tx_attempts.end());
+    if (per_frame.app_query_response_bytes.has_value()) {
+      out.app_query_response_bytes = std::move(per_frame.app_query_response_bytes);
+      out.app_query_kind = per_frame.app_query_kind;
+    }
   }
   return out;
 }
@@ -64,6 +69,7 @@ ControllerStepResult CtController::tick(uint32_t now_ms) {
   if (autonet_tick.clear_assignment) {
     this->identity_.address = 0;
     this->identity_.subnet = CT_SUBNET_V2;
+    this->pending_app_query_.reset();
   }
   if (autonet_tick.assigned_address.has_value()) {
     this->identity_.address = autonet_tick.assigned_address.value();
@@ -96,6 +102,77 @@ bool CtController::enqueue_outbound(const QueuedTx &queued_tx) {
   return true;
 }
 
+namespace {
+
+const char *app_query_label(AppQueryKind kind) {
+  switch (kind) {
+    case AppQueryKind::CONFIGURATION:
+      return "Get Configuration";
+    case AppQueryKind::STATUS:
+      return "Get Status";
+    case AppQueryKind::SENSOR_DATA:
+      return "Get Sensor Data";
+    case AppQueryKind::IDENTIFICATION:
+      return "Get Identification Data";
+    case AppQueryKind::NONE:
+    default:
+      return "App Query";
+  }
+}
+
+}  // namespace
+
+bool CtController::request_configuration(uint8_t target_node_type) {
+  return this->request_app_query_(AppQueryKind::CONFIGURATION, CT_MSG_TYPE_GET_CONFIGURATION_REQUEST,
+                                  CT_MSG_TYPE_GET_CONFIGURATION_RESPONSE, target_node_type);
+}
+
+bool CtController::request_status(uint8_t target_node_type) {
+  return this->request_app_query_(AppQueryKind::STATUS, CT_MSG_TYPE_GET_STATUS_REQUEST,
+                                  CT_MSG_TYPE_GET_STATUS_RESPONSE, target_node_type);
+}
+
+bool CtController::request_sensor_data(uint8_t target_node_type) {
+  return this->request_app_query_(AppQueryKind::SENSOR_DATA, CT_MSG_TYPE_GET_SENSOR_DATA_REQUEST,
+                                  CT_MSG_TYPE_GET_SENSOR_DATA_RESPONSE, target_node_type);
+}
+
+bool CtController::request_identification(uint8_t target_node_type) {
+  return this->request_app_query_(AppQueryKind::IDENTIFICATION, CT_MSG_TYPE_GET_IDENTIFICATION_DATA_REQUEST,
+                                  CT_MSG_TYPE_GET_IDENTIFICATION_DATA_RESPONSE, target_node_type);
+}
+
+bool CtController::request_app_query_(AppQueryKind kind, uint8_t request_message_type, uint8_t response_message_type,
+                                     uint8_t target_node_type) {
+  const char *label = app_query_label(kind);
+  if (target_node_type == 0) {
+    ESP_LOGW(TAG, "%s request rejected: node type 0 is invalid", label);
+    return false;
+  }
+  if (this->identity_.address == 0) {
+    ESP_LOGW(TAG, "%s request rejected: not addressed (join AutoNet first)", label);
+    return false;
+  }
+
+  CtFrame frame;
+  frame.destination_address = CT_ADDRESS_COORDINATOR;
+  frame.source_address = this->identity_.address;
+  frame.subnet = this->identity_.subnet;
+  frame.send_method = CT_SEND_METHOD_PRIORITY_NODE_TYPE;
+  frame.send_parameters = target_node_type;
+  frame.source_node_type = this->identity_.node_type;
+  frame.message_type = request_message_type;
+  frame.packet_number = 0;
+
+  if (!this->enqueue_outbound(QueuedTx{TxSource::CONTROLLER, frame})) {
+    ESP_LOGW(TAG, "%s request dropped: TX queue full", label);
+    return false;
+  }
+  this->pending_app_query_ = PendingAppQuery{kind, request_message_type, response_message_type, target_node_type};
+  ESP_LOGI(TAG, "Enqueued %s request for node type %u", label, static_cast<unsigned>(target_node_type));
+  return true;
+}
+
 ControllerStepResult CtController::handle_frame_(const CtFrame &frame, uint32_t now_ms) {
   ControllerStepResult out;
   const bool is_local_non_dataflow_non_r2r =
@@ -123,6 +200,7 @@ ControllerStepResult CtController::handle_frame_(const CtFrame &frame, uint32_t 
   if (autonet_output.clear_assignment) {
     this->identity_.address = 0;
     this->identity_.subnet = CT_SUBNET_V2;
+    this->pending_app_query_.reset();
   }
   if (autonet_output.assigned_address.has_value()) {
     this->identity_.address = autonet_output.assigned_address.value();
@@ -133,6 +211,14 @@ ControllerStepResult CtController::handle_frame_(const CtFrame &frame, uint32_t 
 
   ServiceOutput subordinate_output = this->subordinate_service_.on_frame(frame, this->identity_);
   this->append_service_outputs_(subordinate_output, &out);
+
+  if (this->is_pending_app_query_response_(frame)) {
+    out.app_query_response_bytes = CtFrameCodec::encode_frame(frame);
+    out.app_query_kind = this->pending_app_query_->kind;
+    const char *label = app_query_label(out.app_query_kind);
+    this->pending_app_query_.reset();
+    ESP_LOGI(TAG, "Matched %s response for pending request", label);
+  }
 
   if (is_local_non_dataflow_non_r2r) {
     ControllerStepResult ack_result = this->try_send_now_(this->make_non_dataflow_ack_(frame));
@@ -214,6 +300,23 @@ bool CtController::is_subnet3_token_offer_(const CtFrame &frame) const {
   }
   const bool subnet_match = frame.subnet == CT_SUBNET_V2 || frame.subnet == CT_SUBNET_BROADCAST;
   return subnet_match;
+}
+
+bool CtController::is_pending_app_query_response_(const CtFrame &frame) const {
+  if (!this->pending_app_query_.has_value()) {
+    return false;
+  }
+  if (!this->is_for_local_node_(frame) || is_dataflow_packet(frame.packet_number)) {
+    return false;
+  }
+  if (frame.message_type != this->pending_app_query_->response_message_type) {
+    return false;
+  }
+  if (frame.send_method != CT_SEND_METHOD_PRIORITY_NODE_TYPE) {
+    return false;
+  }
+  const uint8_t targeted = static_cast<uint8_t>(frame.send_parameters & 0xFFU);
+  return targeted == this->pending_app_query_->target_node_type;
 }
 
 QueuedTx CtController::make_r2r_ack_(const CtFrame &r2r) const {
